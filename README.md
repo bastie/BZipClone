@@ -1,6 +1,9 @@
 Bzip2
 =====
 
+This project is a macOS specific clone of [GitLab.com](https://gitlab.com/bzip2/bzip2).
+
+
 This is Bzip2/libbz2; a program and library for lossless, block-sorting data
 compression.
 

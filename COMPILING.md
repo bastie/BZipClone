@@ -57,7 +57,7 @@ You will need:
  - pkg-config
  - A C compiler such as GCC or Clang
 
-Some linux distros package managers refer to ninja as ninja-build, fedora
+Some **Linux** distros package managers refer to ninja as ninja-build, fedora
 and debian/ubuntu both do this. Your OS probably provides Meson, although
 it may be too old, in that case you can use python3's pip to install Meson:
 
@@ -69,6 +69,11 @@ or, for a user local install:
 pip3 install --user meson
 ```
 
+On **macOS** use homebrew to install Meson, Ninja, pytest and requirements:
+```
+brew install meson ninja pytest
+``` 
+
 Once you have installed the dependencies, the following should work
 to use the standard Meson configuration, a `builddir` for
 compilation, and a `/usr` prefix for installation:
@@ -78,6 +83,11 @@ meson --prefix /usr builddir/
 ninja -C builddir
 meson test -C builddir --print-errorlogs
 [sudo] ninja -C builddir install
+```
+
+If pytest on **macOS** not found you do not, but working, install it on bad way:
+```sh
+/opt/homebrew/bin/pip3 install --user --break-system-packages pytest
 ```
 
 You can use `meson configure builddir` to check configuration options.
