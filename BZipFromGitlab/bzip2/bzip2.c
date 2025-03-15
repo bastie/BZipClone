@@ -141,14 +141,12 @@ static void    applySavedFileAttrToOutputFile ( IntNative fd );
 /*--- Roll on widespread deployment of ANSI C9X ! ---*/
 /*---------------------------------------------------*/
 
-typedef
-   struct { UChar b[8]; }
-   UInt64;
+typedef struct {
+  UChar b[8];
+} UInt64;
 
 
-static
-void uInt64_from_UInt32s ( UInt64* n, UInt32 lo32, UInt32 hi32 )
-{
+static void uInt64_from_UInt32s ( UInt64* n, UInt32 lo32, UInt32 hi32 ) {
    n->b[7] = (UChar)((hi32 >> 24) & 0xFF);
    n->b[6] = (UChar)((hi32 >> 16) & 0xFF);
    n->b[5] = (UChar)((hi32 >> 8)  & 0xFF);
@@ -160,13 +158,10 @@ void uInt64_from_UInt32s ( UInt64* n, UInt32 lo32, UInt32 hi32 )
 }
 
 
-static
-double uInt64_to_double ( UInt64* n )
-{
-   Int32  i;
+static double uInt64_to_double ( UInt64* n ) {
    double base = 1.0;
    double sum  = 0.0;
-   for (i = 0; i < 8; i++) {
+   for (int i = 0; i < 8; i++) {
       sum  += base * (double)(n->b[i]);
       base *= 256.0;
    }
@@ -175,8 +170,7 @@ double uInt64_to_double ( UInt64* n )
 
 
 static Bool uInt64_isZero ( UInt64* n ) {
-  Int32 i;
-  for (i = 0; i < 8; i++) {
+  for (int i = 0; i < 8; i++) {
     if (n->b[i] != 0) {
       return 0;
     }
@@ -185,12 +179,45 @@ static Bool uInt64_isZero ( UInt64* n ) {
 }
 
 
-/* Divide *n by 10, and return the remainder.  */
+/** (KI generierte Dokumentation)
+ @brief Teilt eine 64-Bit-Ganzzahl durch 10 und gibt den Rest zurück.
+ 
+ Die Funktion `uInt64_qrm10` teilt die übergebene 64-Bit-Ganzzahl `n` durch 10.
+ Dabei wird die Zahl Byte für Byte (in Big-Endian-Reihenfolge) verarbeitet.
+ Das Ergebnis der Division wird in den Bytes des Eingabeparameters `n` gespeichert,
+ und der Rest der Division wird als Rückgabewert zurückgegeben.
+ 
+ @param n Ein Zeiger auf eine 64-Bit-Ganzzahl (UInt64), die durch 10 geteilt werden soll.
+ Die Bytes des Ergebnisses werden in diesem Parameter gespeichert.
+ 
+ @return Der Rest der Division (0-9).
+ 
+ @note Die Funktion modifiziert den Inhalt des übergebenen `UInt64`-Parameters `n`.
+ 
+ @code
+ UInt64 myNumber;
+ myNumber.b[0] = 0;
+ myNumber.b[1] = 0;
+ myNumber.b[2] = 0;
+ myNumber.b[3] = 0;
+ myNumber.b[4] = 0;
+ myNumber.b[5] = 0;
+ myNumber.b[6] = 1;
+ myNumber.b[7] = 234; // Beispiel: myNumber = 490
+ 
+ Int32 remainder = uInt64_qrm10(&myNumber);
+ 
+ // Nach dem Aufruf:
+ // myNumber.b[0..6] enthält das Ergebnis der Division (49)
+ // myNumber.b[7] == 0
+ // remainder == 0
+ @endcode
+ */
 static Int32 uInt64_qrm10 ( UInt64* n ) {
-  UInt32 rem, tmp;
-  Int32  i;
+  UInt32 rem;
+  UInt32 tmp;
   rem = 0;
-  for (i = 7; i >= 0; i--) {
+  for (int i = 7; i >= 0; i--) {
     tmp = rem * 256 + n->b[i];
     n->b[i] = tmp / 10;
     rem = tmp % 10;
@@ -199,11 +226,39 @@ static Int32 uInt64_qrm10 ( UInt64* n ) {
 }
 
 
-/* ... and the Whole Entire Point of all this UInt64 stuff is
-   so that we can supply the following function.
-*/
+/**
+ @brief Konvertiert einen UInt64-Wert in eine ASCII-Zeichenkette.
+ 
+ Diese Funktion konvertiert einen gegebenen UInt64-Wert in seine entsprechende
+ ASCII-Zeichenkettendarstellung. Die resultierende Zeichenkette wird in den
+ bereitgestellten Ausgabepuffer geschrieben.
+ 
+ @param outbuf Ein Zeiger auf den Ausgabepuffer, in den die ASCII-Zeichenkette
+ geschrieben wird. Der Puffer muss ausreichend groß sein, um die
+ resultierende Zeichenkette aufzunehmen (maximal 20 Zeichen + Nullterminierung).
+ 
+ @param n Ein Zeiger auf den UInt64-Wert, der konvertiert werden soll.
+ 
+ @discussion Die Funktion verwendet interne Hilfsfunktionen `uInt64_qrm10` und
+ `uInt64_isZero`, um die Konvertierung durchzuführen. Die resultierende
+ Zeichenkette ist nullterminiert.
+ 
+ @note Der Ausgabepuffer `outbuf` muss vom Aufrufer bereitgestellt werden. Es wird
+ keine Fehlerprüfung auf die Größe des Puffers durchgeführt.
+ 
+ @code
+ UInt64 value = 1234567890123456789ULL;
+ char buffer[21]; // 20 Ziffern + Nullterminierung
+ uInt64_toAscii(buffer, &value);
+ // buffer enthält nun "1234567890123456789"
+ @endcode
+ 
+ @see uInt64_qrm10
+ 
+ @see uInt64_isZero
+ */
 static void uInt64_toAscii ( char* outbuf, UInt64* n ) {
-  Int32  i, q;
+  Int32  q;
   UChar  buf[32];
   Int32  nBuf   = 0;
   UInt64 n_copy = *n;
@@ -211,9 +266,11 @@ static void uInt64_toAscii ( char* outbuf, UInt64* n ) {
     q = uInt64_qrm10 ( &n_copy );
     buf[nBuf] = q + '0';
     nBuf += 1;
-  } while (!uInt64_isZero(&n_copy));
+  }
+  while (!uInt64_isZero(&n_copy));
+  
   outbuf[nBuf] = 0;
-  for (i = 0; i < nBuf; i++) {
+  for (int i = 0; i < nBuf; i++) {
     outbuf[i] = buf[nBuf-i-1];
   }
 }
@@ -224,87 +281,161 @@ static void uInt64_toAscii ( char* outbuf, UInt64* n ) {
 /*---------------------------------------------------*/
 
 /*---------------------------------------------*/
+/**
+ @brief Überprüft, ob das Dateiende eines Dateistreams erreicht wurde.
+ 
+ Diese Funktion überprüft, ob das Ende eines gegebenen Dateistreams erreicht wurde,
+ ohne dabei das nächste Zeichen zu konsumieren.
+ 
+ @param f Ein Zeiger auf den FILE-Stream, der überprüft werden soll.
+ 
+ @return `True`, wenn das Dateiende erreicht ist, andernfalls `False`.
+ 
+ @discussion Die Funktion liest temporär ein Zeichen aus dem Stream, um zu überprüfen,
+ ob das Dateiende erreicht ist. Wenn das Dateiende erreicht ist (EOF),
+ gibt die Funktion `True` zurück. Andernfalls wird das gelesene Zeichen
+ mit `ungetc` zurück in den Stream geschoben, und die Funktion gibt `False` zurück.
+ 
+ @note Diese Funktion ist eine benutzerdefinierte Alternative zu `feof`, die das
+ nächste Zeichen nicht konsumiert.
+ 
+ @code
+ FILE *file = fopen("datei.txt", "r");
+ if (file != NULL) {
+   while (!myfeof(file)) {
+     // Verarbeite das nächste Zeichen
+     int c = fgetc(file);
+     if (c != EOF) {
+       // ...
+     }
+   }
+   fclose(file);
+ }
+ @endcode
+ 
+ @see feof
+ @see fgetc
+ @see ungetc
+ */
 static Bool myfeof ( FILE* f ) {
+  // lese ein Zeichen aus dem Eingabstrom als int Wert
   Int32 c = fgetc ( f );
+  // Falls ein Fehler auftritt
   if (c == EOF) {
+    // gebe true zurück
     return True;
   }
-  ungetc ( c, f );
-  return False;
+  // wenn kein Fehler auftritt
+  else {
+    // lege das Zeichen zurück in den Eingabestrom
+    ungetc ( c, f );
+    // gebe false zurück
+    return False;
+  }
 }
 
 
 /*---------------------------------------------*/
 static void compressStream ( FILE *stream, FILE *zStream ) {
   BZFILE* bzf = NULL;
-  UChar   ibuf[5000];
-  Int32   nIbuf;
-  UInt32  nbytes_in_lo32, nbytes_in_hi32;
-  UInt32  nbytes_out_lo32, nbytes_out_hi32;
+  const int bufferSize = 5000;
+  UChar   buffer[bufferSize];
+  unsigned long   countOfElementsInBuffer;
+  UInt32  nbytes_in_lo32;
+  UInt32  nbytes_in_hi32;
+  UInt32  nbytes_out_lo32;
+  UInt32  nbytes_out_hi32;
   Int32   bzerr, bzerr_dummy, ret;
   
   SET_BINARY_MODE(stream);
   SET_BINARY_MODE(zStream);
   
-  if (ferror(stream)) goto errhandler_io;
-  if (ferror(zStream)) goto errhandler_io;
+  if (ferror(stream)) {
+    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
+    goto errhandler_io;
+  }
+  if (ferror(zStream)) {
+    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
+    goto errhandler_io;
+  }
   
-  bzf = BZ2_bzWriteOpen ( &bzerr, zStream,
-                         blockSize100k, verbosity, workFactor );
-  if (bzerr != BZ_OK) goto errhandler;
+  bzf = BZ2_bzWriteOpen ( &bzerr, zStream, blockSize100k, verbosity, workFactor );
+  if (bzerr != BZ_OK) {
+    goto errhandler;
+  }
   
-  if (verbosity >= 2) fprintf ( stderr, "\n" );
+  if (verbosity >= 2) {
+    fprintf ( stderr, "\n" );
+  }
   
   while (True) {
-    
+    // Wenn das Ende des Eingabestroms erreicht ist
     if (myfeof(stream)) {
+      // Beende die Schleife
       break;
     }
-    nIbuf = (unsigned int) fread ( ibuf, sizeof(UChar), 5000, stream );
+    // Lese aus dem Eingabstrom `stream` maximal soviele Elemente wie in `bufferSize` definiert ist, wobei ein Elemen eine Anzahl von Bytes entspricht die `sizeof(UChar)` zurückgibt und speicher diese im Puffer `buffer`. Die Anzahl der gelesenen Zeichen speichere dabei in `countOfElementsInBuffer`.
+    countOfElementsInBuffer = fread ( buffer, sizeof(UChar), bufferSize, stream );
+    // prüfe, ob beim lesen ein Fehler aufgetreten ist
     if (ferror(stream)) {
       goto errhandler_io;
     }
-    if (nIbuf > 0) {
-      BZ2_bzWrite ( &bzerr, bzf, (void*)ibuf, nIbuf );
+    // Wenn aus dem Strom etwas gelesen wurde
+    if (countOfElementsInBuffer > 0) {
+      // rufe die Funktion `BZ2_bzWrite` auf
+      BZ2_bzWrite ( &bzerr, bzf, (void*)buffer, (int)countOfElementsInBuffer );
     }
     if (bzerr != BZ_OK) {
       goto errhandler;
     }
   }
   
-  BZ2_bzWriteClose64 ( &bzerr, bzf, 0,
-                      &nbytes_in_lo32, &nbytes_in_hi32,
-                      &nbytes_out_lo32, &nbytes_out_hi32 );
+  BZ2_bzWriteClose64 ( &bzerr, bzf, 0, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32 );
   if (bzerr != BZ_OK) {
     goto errhandler;
   }
   
-  if (ferror(zStream)) goto errhandler_io;
+  if (ferror(zStream)) {
+    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
+    goto errhandler_io;
+  }
   ret = fflush ( zStream );
-  if (ret == EOF) goto errhandler_io;
+  if (ret == EOF) {
+    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
+    goto errhandler_io;
+  }
   if (zStream != stdout) {
     Int32 fd = fileno ( zStream );
     if (fd < 0) {
+      // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
       goto errhandler_io;
     }
     applySavedFileAttrToOutputFile ( fd );
     ret = fclose ( zStream );
     outputHandleJustInCase = NULL;
     if (ret == EOF) {
+      // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
       goto errhandler_io;
     }
   }
   outputHandleJustInCase = NULL;
-  if (ferror(stream)) goto errhandler_io;
+  if (ferror(stream)) {
+    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
+    goto errhandler_io;
+  }
   ret = fclose ( stream );
-  if (ret == EOF) goto errhandler_io;
+  if (ret == EOF) {
+    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
+    goto errhandler_io;
+  }
   
   if (verbosity >= 1) {
     if (nbytes_in_lo32 == 0 && nbytes_in_hi32 == 0) {
       fprintf ( stderr, " no data compressed.\n");
     }
     else {
-      Char   buf_nin[32], buf_nout[32];
+      Char   buf_nin[32];
+      Char   buf_nout[32];
       UInt64 nbytes_in,   nbytes_out;
       double nbytes_in_d, nbytes_out_d;
       uInt64_from_UInt32s ( &nbytes_in,
@@ -315,14 +446,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
       nbytes_out_d = uInt64_to_double ( &nbytes_out );
       uInt64_toAscii ( buf_nin, &nbytes_in );
       uInt64_toAscii ( buf_nout, &nbytes_out );
-      fprintf ( stderr, "%6.3f:1, %6.3f bits/byte, "
-               "%5.2f%% saved, %s in, %s out.\n",
-               nbytes_in_d / nbytes_out_d,
-               (8.0 * nbytes_out_d) / nbytes_in_d,
-               100.0 * (1.0 - nbytes_out_d / nbytes_in_d),
-               buf_nin,
-               buf_nout
-               );
+      fprintf ( stderr, "%6.3f:1, %6.3f bits/byte, " "%5.2f%% saved, %s in, %s out.\n", nbytes_in_d / nbytes_out_d, (8.0 * nbytes_out_d) / nbytes_in_d, 100.0 * (1.0 - nbytes_out_d / nbytes_in_d), buf_nin, buf_nout);
     }
   }
   
@@ -334,12 +458,15 @@ errhandler:
                       &nbytes_out_lo32, &nbytes_out_hi32 );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
-      configError(); break;
+      configError();
+      break;
     case BZ_MEM_ERROR:
-      outOfMemory (); break;
+      outOfMemory ();
+      break;
     case BZ_IO_ERROR:
-    errhandler_io:
-      ioError(); break;
+errhandler_io:
+      ioError();
+      break;
     default:
       panic ( "compress:unexpected error" );
   }
@@ -529,14 +656,13 @@ static Bool testStream ( FILE *zStream ) {
   streamNo = 0;
   
   SET_BINARY_MODE(zStream);
-  if (ferror(zStream)) goto errhandler_io;
+  if (ferror(zStream)) {
+    goto errhandler_io;
+  }
   
   while (True) {
     
-    bzf = BZ2_bzReadOpen (
-                          &bzerr, zStream, verbosity,
-                          (int)smallMode, unused, nUnused
-                          );
+    bzf = BZ2_bzReadOpen ( &bzerr, zStream, verbosity, (int)smallMode, unused, nUnused );
     if (bzf == NULL || bzerr != BZ_OK) {
       goto errhandler;
     }
@@ -592,7 +718,8 @@ errhandler:
       configError();
       break;
     case BZ_IO_ERROR:
-    errhandler_io:
+errhandler_io:
+      // rufe die Funktion `ioError` auf (welche später `exit(int)` aufruft
       ioError();
       break;
     case BZ_DATA_ERROR:
@@ -685,41 +812,27 @@ static void cleanUpAndFail ( Int32 ec ) {
      do the check anyway.)  */
     retVal = MY_STAT ( inName, &statBuf );
     if (retVal == 0) {
-      if (noisy)
-        fprintf ( stderr,
-                 "%s: Deleting output file %s, if it exists.\n",
-                 progName, outName );
-      if (outputHandleJustInCase != NULL)
+      if (noisy) {
+        fprintf ( stderr, "%s: Deleting output file %s, if it exists.\n", progName, outName );
+      }
+      if (outputHandleJustInCase != NULL) {
         fclose ( outputHandleJustInCase );
+      }
       retVal = remove ( outName );
-      if (retVal != 0)
-        fprintf ( stderr,
-                 "%s: WARNING: deletion of output file "
-                 "(apparently) failed.\n",
-                 progName );
-    } else {
-      fprintf ( stderr,
-               "%s: WARNING: deletion of output file suppressed\n",
-               progName );
-      fprintf ( stderr,
-               "%s:    since input file no longer exists.  Output file\n",
-               progName );
-      fprintf ( stderr,
-               "%s:    `%s' may be incomplete.\n",
-               progName, outName );
-      fprintf ( stderr,
-               "%s:    I suggest doing an integrity test (bzip2 -tv)"
-               " of it.\n",
-               progName );
+      if (retVal != 0) {
+        fprintf ( stderr, "%s: WARNING: deletion of output file " "(apparently) failed.\n", progName );
+      }
+    }
+    else {
+      fprintf ( stderr, "%s: WARNING: deletion of output file suppressed\n", progName );
+      fprintf ( stderr, "%s:    since input file no longer exists.  Output file\n", progName );
+      fprintf ( stderr, "%s:    `%s' may be incomplete.\n", progName, outName );
+      fprintf ( stderr, "%s:    I suggest doing an integrity test (bzip2 -tv)" " of it.\n", progName );
     }
   }
   
   if (noisy && numFileNames > 0 && numFilesProcessed < numFileNames) {
-    fprintf ( stderr,
-             "%s: WARNING: some files have not been processed:\n"
-             "%s:    %d specified on command line, %d not processed yet.\n\n",
-             progName, progName,
-             numFileNames, numFileNames - numFilesProcessed );
+    fprintf ( stderr, "%s: WARNING: some files have not been processed:\n" "%s:    %d specified on command line, %d not processed yet.\n\n", progName, progName, numFileNames, numFileNames - numFilesProcessed );
   }
   setExit(ec);
   exit(exitValue);
@@ -767,10 +880,7 @@ static void compressedStreamEOF ( void ) {
 
 /*---------------------------------------------*/
 static void ioError ( void ) {
-  fprintf ( stderr,
-           "\n%s: I/O or other error, bailing out.  "
-           "Possible reason follows.\n",
-           progName );
+  fprintf ( stderr, "\n%s: I/O or other error, bailing out.  " "Possible reason follows.\n", progName );
   perror ( progName );
   showFileNames();
   cleanUpAndFail( 1 );
