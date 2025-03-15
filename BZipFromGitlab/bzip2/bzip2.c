@@ -32,9 +32,9 @@
 #include <ctype.h>
 #include "bzlib.h"
 
-#define ERROR_IF_EOF(i)       { if ((i) == EOF)  ioError(); }
-#define ERROR_IF_NOT_ZERO(i)  { if ((i) != 0)    ioError(); }
-#define ERROR_IF_MINUS_ONE(i) { if ((i) == (-1)) ioError(); }
+#define ERROR_IF_EOF(i)       { if ((i) == EOF)  handleIoErrors(); }
+#define ERROR_IF_NOT_ZERO(i)  { if ((i) != 0)    handleIoErrors(); }
+#define ERROR_IF_MINUS_ONE(i) { if ((i) == (-1)) handleIoErrors(); }
 
 /*---------------------------------------------*/
 /*--
@@ -123,7 +123,7 @@ FILE    *outputHandleJustInCase;
 Int32   workFactor;
 
 static void    panic                 ( const Char* ) NORETURN;
-static void    ioError               ( void )        NORETURN;
+static void    handleIoErrors               ( void )        NORETURN;
 static void    outOfMemory           ( void )        NORETURN;
 static void    configError           ( void )        NORETURN;
 static void    crcError              ( void )        NORETURN;
@@ -351,12 +351,12 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
   SET_BINARY_MODE(zStream);
   
   if (ferror(stream)) {
-    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   if (ferror(zStream)) {
-    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   
   bzf = BZ2_bzWriteOpen ( &bzerr, zStream, blockSize100k, verbosity, workFactor );
@@ -378,7 +378,8 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     countOfElementsInBuffer = fread ( buffer, sizeof(UChar), bufferSize, stream );
     // prüfe, ob beim lesen ein Fehler aufgetreten ist
     if (ferror(stream)) {
-      goto errhandler_io;
+      // führe die Fehlerbehandlung aus
+      handleIoErrors();
     }
     // Wenn aus dem Strom etwas gelesen wurde
     if (countOfElementsInBuffer > 0) {
@@ -396,37 +397,37 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
   }
   
   if (ferror(zStream)) {
-    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   ret = fflush ( zStream );
   if (ret == EOF) {
-    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   if (zStream != stdout) {
     Int32 fd = fileno ( zStream );
     if (fd < 0) {
-      // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-      goto errhandler_io;
+      // führe die Fehlerbehandlung aus
+      handleIoErrors();
     }
     applySavedFileAttrToOutputFile ( fd );
     ret = fclose ( zStream );
     outputHandleJustInCase = NULL;
     if (ret == EOF) {
-      // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-      goto errhandler_io;
+      // führe die Fehlerbehandlung aus
+      handleIoErrors();
     }
   }
   outputHandleJustInCase = NULL;
   if (ferror(stream)) {
-    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   ret = fclose ( stream );
   if (ret == EOF) {
-    // da bei errhandler_io weitergehend `ioError()` aufgerufen wird und dort `exit(int)` kann auch gleich `ioError()` aufgerufen werden
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   
   if (verbosity >= 1) {
@@ -464,8 +465,7 @@ errhandler:
       outOfMemory ();
       break;
     case BZ_IO_ERROR:
-errhandler_io:
-      ioError();
+      handleIoErrors();
       break;
     default:
       panic ( "compress:unexpected error" );
@@ -614,7 +614,7 @@ errhandler:
       configError(); break;
     case BZ_IO_ERROR:
     errhandler_io:
-      ioError(); break;
+      handleIoErrors(); break;
     case BZ_DATA_ERROR:
       crcError();
     case BZ_MEM_ERROR:
@@ -720,7 +720,7 @@ errhandler:
     case BZ_IO_ERROR:
 errhandler_io:
       // rufe die Funktion `ioError` auf (welche später `exit(int)` aufruft
-      ioError();
+      handleIoErrors();
       break;
     case BZ_DATA_ERROR:
       fprintf ( stderr,
@@ -879,7 +879,7 @@ static void compressedStreamEOF ( void ) {
 
 
 /*---------------------------------------------*/
-static void ioError ( void ) {
+static void handleIoErrors ( void ) {
   fprintf ( stderr, "\n%s: I/O or other error, bailing out.  " "Possible reason follows.\n", progName );
   perror ( progName );
   showFileNames();
