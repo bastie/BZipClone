@@ -336,6 +336,31 @@ static Bool myfeof ( FILE* f ) {
 
 
 /*---------------------------------------------*/
+void handleErrors (int* bzerror, BZFILE* bzf, int abandon, unsigned int* nbytes_in_lo32, unsigned int* nbytes_in_hi32, unsigned int* nbytes_out_lo32, unsigned int* nbytes_out_hi32, int bzerr);
+
+inline void handleErrors (int* bzerror, BZFILE* bzf, int abandon, unsigned int* nbytes_in_lo32, unsigned int* nbytes_in_hi32, unsigned int* nbytes_out_lo32, unsigned int* nbytes_out_hi32, int bzerr) {
+  
+  BZ2_bzWriteClose64 ( bzerror, bzf, 1,
+                      nbytes_in_lo32, nbytes_in_hi32,
+                      nbytes_out_lo32, nbytes_out_hi32 );
+  switch (bzerr) {
+    case BZ_CONFIG_ERROR:
+      configError();
+      break;
+    case BZ_MEM_ERROR:
+      outOfMemory ();
+      break;
+    case BZ_IO_ERROR:
+      handleIoErrors();
+      break;
+    default:
+      panic ( "compress:unexpected error" );
+  }
+  
+  panic ( "compress:end" );
+  /*notreached*/
+}
+
 static void compressStream ( FILE *stream, FILE *zStream ) {
   BZFILE* bzf = NULL;
   const int bufferSize = 5000;
@@ -345,7 +370,9 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
   UInt32  nbytes_in_hi32;
   UInt32  nbytes_out_lo32;
   UInt32  nbytes_out_hi32;
-  Int32   bzerr, bzerr_dummy, ret;
+  Int32   bzerr;
+  Int32   bzerr_dummy;
+  Int32   ret;
   
   SET_BINARY_MODE(stream);
   SET_BINARY_MODE(zStream);
@@ -361,7 +388,8 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
   
   bzf = BZ2_bzWriteOpen ( &bzerr, zStream, blockSize100k, verbosity, workFactor );
   if (bzerr != BZ_OK) {
-    goto errhandler;
+    // führe die Fehlerbehandlung aus
+    handleErrors (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
   }
   
   if (verbosity >= 2) {
@@ -387,13 +415,15 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
       BZ2_bzWrite ( &bzerr, bzf, (void*)buffer, (int)countOfElementsInBuffer );
     }
     if (bzerr != BZ_OK) {
-      goto errhandler;
+      // führe die Fehlerbehandlung aus
+      handleErrors (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
     }
   }
   
   BZ2_bzWriteClose64 ( &bzerr, bzf, 0, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32 );
   if (bzerr != BZ_OK) {
-    goto errhandler;
+    // führe die Fehlerbehandlung aus
+    handleErrors (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
   }
   
   if (ferror(zStream)) {
@@ -451,30 +481,9 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     }
   }
   
+  // beenden der Funktion (ohne Fehler)
   return;
-  
-errhandler:
-  BZ2_bzWriteClose64 ( &bzerr_dummy, bzf, 1,
-                      &nbytes_in_lo32, &nbytes_in_hi32,
-                      &nbytes_out_lo32, &nbytes_out_hi32 );
-  switch (bzerr) {
-    case BZ_CONFIG_ERROR:
-      configError();
-      break;
-    case BZ_MEM_ERROR:
-      outOfMemory ();
-      break;
-    case BZ_IO_ERROR:
-      handleIoErrors();
-      break;
-    default:
-      panic ( "compress:unexpected error" );
-  }
-  
-  panic ( "compress:end" );
-  /*notreached*/
 }
-
 
 
 /*---------------------------------------------*/
@@ -499,18 +508,17 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
   SET_BINARY_MODE(zStream);
   
   if (ferror(stream)) {
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   if (ferror(zStream)) {
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   
   while (True) {
     
-    bzf = BZ2_bzReadOpen (
-                          &bzerr, zStream, verbosity,
-                          (int)smallMode, unused, nUnused
-                          );
+    bzf = BZ2_bzReadOpen ( &bzerr, zStream, verbosity, (int)smallMode, unused, nUnused );
     if (bzf == NULL || bzerr != BZ_OK) {
       goto errhandler;
     }
@@ -525,7 +533,8 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
         fwrite ( obuf, sizeof(UChar), nread, stream );
       }
       if (ferror(stream)) {
-        goto errhandler_io;
+        // führe die Fehlerbehandlung aus
+        handleIoErrors();
       }
     }
     if (bzerr != BZ_STREAM_END) {
@@ -553,31 +562,39 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
   }
   
 closeok:
-  if (ferror(zStream)) goto errhandler_io;
+  if (ferror(zStream)) {
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
+  }
   if (stream != stdout) {
     Int32 fd = fileno ( stream );
     if (fd < 0) {
-      goto errhandler_io;
+      // führe die Fehlerbehandlung aus
+      handleIoErrors();
     }
     applySavedFileAttrToOutputFile ( fd );
   }
   ret = fclose ( zStream );
   if (ret == EOF) {
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   
   if (ferror(stream)) {
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   ret = fflush ( stream );
   if (ret != 0) {
-    goto errhandler_io;
+    // führe die Fehlerbehandlung aus
+    handleIoErrors();
   }
   if (stream != stdout) {
     ret = fclose ( stream );
     outputHandleJustInCase = NULL;
     if (ret == EOF) {
-      goto errhandler_io;
+      // führe die Fehlerbehandlung aus
+      handleIoErrors();
     }
   }
   outputHandleJustInCase = NULL;
@@ -595,13 +612,15 @@ trycat:
       }
       nread = fread ( obuf, sizeof(UChar), 5000, zStream );
       if (ferror(zStream)) {
-        goto errhandler_io;
+        // führe die Fehlerbehandlung aus
+        handleIoErrors();
       }
       if (nread > 0) {
         fwrite ( obuf, sizeof(UChar), nread, stream );
       }
       if (ferror(stream)) {
-        goto errhandler_io;
+        // führe die Fehlerbehandlung aus
+        handleIoErrors();
       }
     }
     goto closeok;
@@ -613,7 +632,6 @@ errhandler:
     case BZ_CONFIG_ERROR:
       configError(); break;
     case BZ_IO_ERROR:
-    errhandler_io:
       handleIoErrors(); break;
     case BZ_DATA_ERROR:
       crcError();

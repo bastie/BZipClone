@@ -148,7 +148,6 @@ extern UInt32 BZ2_crc32Table[256];
 static const int BZ_INITIALISE_CRC = 0xffffffffL;                       
 
 
-
 static inline void BZ_FINALISE_CRC (unsigned int *crcVar) {
   *crcVar = ~(*crcVar);
 }
