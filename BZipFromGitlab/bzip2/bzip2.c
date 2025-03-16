@@ -138,21 +138,21 @@ static const int OPERATION_MODE_TEST = 3;
 Int32   operationMode;
 Int32   srcMode;
 
-#define FILE_NAME_LEN 1034
+static const int FILE_NAME_LEN = 1034;
 
-Int32   longestFileName;
-Char    inName [FILE_NAME_LEN];
-Char    outName[FILE_NAME_LEN];
-Char    tmpName[FILE_NAME_LEN];
+Int32   longestFilename;
+Char    inputFilename [FILE_NAME_LEN];
+Char    outputFilename[FILE_NAME_LEN];
+Char    tmporaryFilename[FILE_NAME_LEN];
 Char    *progName;
 Char    progNameReally[FILE_NAME_LEN];
 FILE    *outputHandleJustInCase;
 Int32   workFactor;
 
-static void    panic                 ( const Char* ) NORETURN;
+static void    printUnexpectedProgramStateAndExitApplication                 ( const Char* ) NORETURN;
 static void    handleIoErrorsAndExitApplication        ( void )        NORETURN;
-static void    outOfMemory           ( void )        NORETURN;
-static void    printConfigErrorAndExit           ( void )        NORETURN;
+static void    printOutOfMemoryAndExitApplication           ( void )        NORETURN;
+static void    printConfigErrorAndExitApplication           ( void )        NORETURN;
 static void    crcError              ( void )        NORETURN;
 static void    cleanUpAndFailAndExitApplication        ( Int32 )       NORETURN;
 static void    compressedStreamEOF   ( void )        NORETURN;
@@ -372,19 +372,19 @@ inline void handleErrors (int* bzerror, BZFILE* bzf, int abandon, unsigned int* 
                       nbytes_out_lo32, nbytes_out_hi32 );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
-      printConfigErrorAndExit();
+      printConfigErrorAndExitApplication();
       break;
     case BZ_MEM_ERROR:
-      outOfMemory ();
+      printOutOfMemoryAndExitApplication ();
       break;
     case BZ_IO_ERROR:
       handleIoErrorsAndExitApplication();
       break;
     default:
-      panic ( "compress:unexpected error" );
+      printUnexpectedProgramStateAndExitApplication ( "compress:unexpected error" );
   }
   
-  panic ( "compress:end" );
+  printUnexpectedProgramStateAndExitApplication ( "compress:end" );
   /*notreached*/
 }
 
@@ -565,7 +565,7 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
     
     BZ2_bzReadGetUnused ( &bzerr, bzf, &unusedTmpV, &nUnused );
     if (bzerr != BZ_OK) {
-      panic ( "decompress:bzReadGetUnused" );
+      printUnexpectedProgramStateAndExitApplication ( "decompress:bzReadGetUnused" );
     }
     
     unusedTmp = (UChar*)unusedTmpV;
@@ -575,7 +575,7 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
     
     BZ2_bzReadClose ( &bzerr, bzf );
     if (bzerr != BZ_OK) {
-      panic ( "decompress:bzReadGetUnused" );
+      printUnexpectedProgramStateAndExitApplication ( "decompress:bzReadGetUnused" );
     }
     
     if (nUnused == 0 && myfeof(zStream)) {
@@ -652,13 +652,13 @@ errhandler:
   BZ2_bzReadClose ( &bzerr_dummy, bzf );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
-      printConfigErrorAndExit(); break;
+      printConfigErrorAndExitApplication(); break;
     case BZ_IO_ERROR:
       handleIoErrorsAndExitApplication(); break;
     case BZ_DATA_ERROR:
       crcError();
     case BZ_MEM_ERROR:
-      outOfMemory();
+      printOutOfMemoryAndExitApplication();
     case BZ_UNEXPECTED_EOF:
       compressedStreamEOF();
     case BZ_DATA_ERROR_MAGIC:
@@ -668,15 +668,15 @@ errhandler:
         return False;
       } else {
         if (!quiet) {
-          fprintf ( stderr, "\n%s: %s: trailing garbage after EOF ignored\n", progName, inName );
+          fprintf ( stderr, "\n%s: %s: trailing garbage after EOF ignored\n", progName, inputFilename );
         }
         return True;
       }
     default:
-      panic ( "decompress:unexpected error" );
+      printUnexpectedProgramStateAndExitApplication ( "decompress:unexpected error" );
   }
   
-  panic ( "decompress:end" );
+  printUnexpectedProgramStateAndExitApplication ( "decompress:end" );
   return True; /*notreached*/
 }
 
@@ -719,7 +719,7 @@ static Bool testStream ( FILE *zStream ) {
     
     BZ2_bzReadGetUnused ( &bzerr, bzf, &unusedTmpV, &nUnused );
     if (bzerr != BZ_OK) {
-      panic ( "test:bzReadGetUnused" );
+      printUnexpectedProgramStateAndExitApplication ( "test:bzReadGetUnused" );
     }
     
     unusedTmp = (UChar*)unusedTmpV;
@@ -727,7 +727,7 @@ static Bool testStream ( FILE *zStream ) {
     
     BZ2_bzReadClose ( &bzerr, bzf );
     if (bzerr != BZ_OK) {
-      panic ( "test:bzReadGetUnused" );
+      printUnexpectedProgramStateAndExitApplication ( "test:bzReadGetUnused" );
     }
     if (nUnused == 0 && myfeof(zStream)) {
       break;
@@ -751,10 +751,10 @@ static Bool testStream ( FILE *zStream ) {
 errhandler:
   BZ2_bzReadClose ( &bzerr_dummy, bzf );
   if (verbosity == 0)
-    fprintf ( stderr, "%s: %s: ", progName, inName );
+    fprintf ( stderr, "%s: %s: ", progName, inputFilename );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
-      printConfigErrorAndExit();
+      printConfigErrorAndExitApplication();
       break;
     case BZ_IO_ERROR:
       // rufe die Funktion `ioError` auf (welche später `exit(int)` aufruft
@@ -764,7 +764,7 @@ errhandler:
       fprintf ( stderr, "data integrity (CRC) error in data\n" );
       return False;
     case BZ_MEM_ERROR:
-      outOfMemory();
+      printOutOfMemoryAndExitApplication();
     case BZ_UNEXPECTED_EOF:
       fprintf ( stderr, "file ends unexpectedly\n" );
       return False;
@@ -783,10 +783,10 @@ errhandler:
         return True;
       }
     default:
-      panic ( "test:unexpected error" );
+      printUnexpectedProgramStateAndExitApplication ( "test:unexpected error" );
   }
   
-  panic ( "test:end" );
+  printUnexpectedProgramStateAndExitApplication ( "test:end" );
   return True; /*notreached*/
 }
 
@@ -849,7 +849,7 @@ static void cadvise ( void ) {
 /*---------------------------------------------*/
 static void showFileNames ( void ) {
   if (!quiet) {
-    fprintf ( stderr, "\tInput file = %s, output file = %s\n", inName, outName );
+    fprintf ( stderr, "\tInput file = %s, output file = %s\n", inputFilename, outputFilename );
   }
 }
 
@@ -866,15 +866,15 @@ static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
      January 2002.  (JRS 06-Jan-2002: other changes in 1.0.2 mean
      this is less likely to happen.  But to be ultra-paranoid, we
      do the check anyway.)  */
-    retVal = MY_STAT ( inName, &statBuf );
+    retVal = MY_STAT ( inputFilename, &statBuf );
     if (retVal == 0) {
       if (!quiet) {
-        fprintf ( stderr, "%s: Deleting output file %s, if it exists.\n", progName, outName );
+        fprintf ( stderr, "%s: Deleting output file %s, if it exists.\n", progName, outputFilename );
       }
       if (outputHandleJustInCase != NULL) {
         fclose ( outputHandleJustInCase );
       }
-      retVal = remove ( outName );
+      retVal = remove ( outputFilename );
       if (retVal != 0) {
         fprintf ( stderr, "%s: WARNING: deletion of output file " "(apparently) failed.\n", progName );
       }
@@ -882,7 +882,7 @@ static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
     else {
       fprintf ( stderr, "%s: WARNING: deletion of output file suppressed\n", progName );
       fprintf ( stderr, "%s:    since input file no longer exists.  Output file\n", progName );
-      fprintf ( stderr, "%s:    `%s' may be incomplete.\n", progName, outName );
+      fprintf ( stderr, "%s:    `%s' may be incomplete.\n", progName, outputFilename );
       fprintf ( stderr, "%s:    I suggest doing an integrity test (bzip2 -tv)" " of it.\n", progName );
     }
   }
@@ -896,7 +896,7 @@ static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
 
 
 /*---------------------------------------------*/
-static void panic ( const Char* s ) {
+static void printUnexpectedProgramStateAndExitApplication ( const Char* s ) {
   fprintf ( stderr,
            "\n%s: PANIC -- internal consistency error:\n"
            "\t%s\n"
@@ -998,11 +998,11 @@ static void mySIGSEGVorSIGBUScatcher ( IntNative n ) {
   
   msg = "\tInput file = ";
   write ( STDERR_FILENO, msg, strlen (msg) );
-  write ( STDERR_FILENO, inName, strlen (inName) );
+  write ( STDERR_FILENO, inputFilename, strlen (inputFilename) );
   write ( STDERR_FILENO, "\n", 1 );
   msg = "\tOutput file = ";
   write ( STDERR_FILENO, msg, strlen (msg) );
-  write ( STDERR_FILENO, outName, strlen (outName) );
+  write ( STDERR_FILENO, outputFilename, strlen (outputFilename) );
   write ( STDERR_FILENO, "\n", 1 );
   
   /* Don't call cleanupAndFail. If we ended up here something went
@@ -1019,17 +1019,15 @@ static void mySIGSEGVorSIGBUScatcher ( IntNative n ) {
 
 
 /*---------------------------------------------*/
-static void outOfMemory ( void ) {
-  fprintf ( stderr,
-           "\n%s: couldn't allocate enough memory\n",
-           progName );
+static void printOutOfMemoryAndExitApplication ( void ) {
+  fprintf ( stderr, "\n%s: couldn't allocate enough memory\n", progName );
   showFileNames();
   cleanUpAndFailAndExitApplication(1);
 }
 
 
 /*---------------------------------------------*/
-static void printConfigErrorAndExit ( void ) {
+static void printConfigErrorAndExitApplication ( void ) {
   fprintf ( stderr,
            "bzip2: I'm not configured correctly for this platform!\n"
            "\tI require Int32, Int16 and Char to have sizes\n"
@@ -1052,9 +1050,10 @@ static void printConfigErrorAndExit ( void ) {
 
 /*---------------------------------------------*/
 static void pad ( Char *s ) {
-  Int32 i;
-  if ( (Int32)strlen(s) >= longestFileName ) {return;}
-  for (i = 1; i <= longestFileName - (Int32)strlen(s); i++) {
+  if ( (Int32)strlen(s) >= longestFilename ) {
+    return;
+  }
+  for (int i = 1; i <= longestFilename - (Int32)strlen(s); i++) {
     fprintf ( stderr, " " );
   }
 }
@@ -1091,19 +1090,18 @@ static void pad ( Char *s ) {
  */
 static void copyFileName ( Char* to, Char* from ) {
   if ( strlen(from) > FILE_NAME_LEN-10 )  {
-    fprintf (
-             stderr,
-             "bzip2: file name\n`%s'\n"
-             "is suspiciously (more than %d chars) long.\n"
-             "Try using a reasonable file name instead.  Sorry! :-)\n",
-             from, FILE_NAME_LEN-10
+    fprintf ( stderr,
+              "bzip2: file name\n`%s'\n"
+              "is suspiciously (more than %d chars) long.\n"
+              "Try using a reasonable file name instead.  Sorry! :-)\n",
+              from, FILE_NAME_LEN-10
              );
     setExit(1);
     exit(exitValue);
   }
   
   strncpy(to,from,FILE_NAME_LEN-10);
-  to[FILE_NAME_LEN-10]='\0';
+  to[FILE_NAME_LEN-10] = '\0';
 }
 
 
@@ -1117,25 +1115,65 @@ static Bool fileExists ( Char* name ) {
   return exists;
 }
 
-
-/*---------------------------------------------*/
-/* Open an output file safely with O_EXCL and good permissions.
-   This avoids a race condition in versions < 1.0.2, in which
-   the file was first opened and then had its interim permissions
-   set safely.  We instead use open() to create the file with
-   the interim permissions required. (--- --- rw-).
-
-   For non-Unix platforms, if we are not worrying about
-   security issues, simple this simply behaves like fopen.
-*/
+/**
+ @brief Öffnet eine Ausgabedatei sicher und gibt einen FILE-Zeiger zurück.
+ 
+ Diese Funktion öffnet eine Ausgabedatei mit dem angegebenen Namen und Modus,
+ wobei sichergestellt wird, dass die Datei nicht bereits existiert.
+ 
+ @param name Der Name der Ausgabedatei.
+ @param mode Der Modus, in dem die Datei geöffnet werden soll (z.B. "w" für Schreiben).
+ 
+ @return Ein FILE-Zeiger auf die geöffnete Datei oder NULL, wenn ein Fehler auftritt.
+ 
+ @discussion
+ Die Funktion verwendet `open`, um die Datei mit den Flags `O_WRONLY`, `O_CREAT` und `O_EXCL`
+ zu öffnen. Dies stellt sicher, dass die Datei nur zum Schreiben geöffnet wird, erstellt wird,
+ wenn sie nicht existiert, und einen Fehler zurückgibt, wenn sie bereits existiert.
+ Die Dateiberechtigungen werden auf Schreiben und Lesen für den Eigentümer gesetzt.
+ 
+ Wenn `open` erfolgreich ist, wird `fdopen` verwendet, um einen FILE-Zeiger zu erstellen.
+ Wenn `fdopen` fehlschlägt, wird die mit `open` geöffnete Datei geschlossen.
+ 
+ @note
+ Diese Funktion dient dazu, race conditions beim Erstellen von Ausgabedateien zu vermeiden.
+ 
+ @code
+ FILE *outputFile = fopen_output_safely("output.txt", "w");
+ if (outputFile != NULL) {
+   // Schreibe Daten in die Datei
+   fprintf(outputFile, "Hallo Welt!\n");
+   fclose(outputFile);
+ }
+ else {
+   perror("fopen_output_safely");
+ }
+ @endcode
+ 
+ @see open
+ @see fdopen
+ @see close
+ */
 static FILE* fopen_output_safely ( Char* name, const char* mode ) {
-  FILE*     fp;
-  IntNative fh;
-  fh = open(name, O_WRONLY|O_CREAT|O_EXCL, S_IWUSR|S_IRUSR);
-  if (fh == -1) {return NULL;}
-  fp = fdopen(fh, mode);
-  if (fp == NULL) {close(fh);}
-  return fp;
+  // Öffne betriebssystemnah die Datei mit dem Namen `name` und kombinierten Modus write_only + create_if_not_exist + error_if_exist und setze die Permissions auf schreibbar für den Dateibesitzer und lesbar für den Dateibesitzer
+  int fh = open (name, O_WRONLY|O_CREAT|O_EXCL, S_IWUSR|S_IRUSR);
+  // Wenn open erfolgreich war
+  if (fh > -1) {
+    // erzeuge einen Zeiger auf die Datei mit dem Namen `name` und im übergebenen Modus `mode`
+    FILE* fp = fdopen (fh, mode);
+    // wenn es zu einem Fehler beim öffnen der Datei mit `fdopen` kam
+    if (fp == NULL) {
+      // schliesse die Datei die mit `open` geöffnet wurde
+      close (fh);
+    }
+    // gebe den Zeiger auf die Datei mit dem Namen `name` zurück
+    return fp;
+  }
+  // Wenn open nicht erfolgreich war
+  else {
+    // gebe `NULL` zurück um den Fehler zu signalisieren
+    return NULL;
+  }
 }
 
 
@@ -1148,8 +1186,12 @@ static Bool notAStandardFile ( Char* name ) {
   struct MY_STAT statBuf;
   
   i = MY_LSTAT ( name, &statBuf );
-  if (i != 0) {return True;}
-  if (MY_S_ISREG(statBuf.st_mode)) {return False;}
+  if (i != 0) {
+    return True;
+  }
+  if (MY_S_ISREG(statBuf.st_mode)) {
+    return False;
+  }
   return True;
 }
 
@@ -1163,7 +1205,9 @@ static Int32 countHardLinks ( Char* name ) {
   struct MY_STAT statBuf;
   
   i = MY_LSTAT ( name, &statBuf );
-  if (i != 0) { return 0; }
+  if (i != 0) {
+    return 0;
+  }
   return (statBuf.st_nlink - 1);
 }
 
@@ -1191,27 +1235,17 @@ static Int32 countHardLinks ( Char* name ) {
    robustly to arbitrary Unix-like platforms (or even works robustly
    on this one, RedHat 7.2) is unknown to me.  Nevertheless ...
 */
-#if __APPLE__
-static
-struct MY_STAT fileMetaInfo;
-#endif
+static struct MY_STAT fileMetaInfo;
 
-static
-void saveInputFileMetaInfo ( Char *srcName )
-{
-#  if __APPLE__
+static void saveInputFileMetaInfo ( Char *srcName ) {
    IntNative retVal;
    /* Note use of stat here, not lstat. */
    retVal = MY_STAT( srcName, &fileMetaInfo );
    ERROR_IF_NOT_ZERO ( retVal );
-#  endif
 }
 
 
-static
-void applySavedTimeInfoToOutputFile ( Char *dstName )
-{
-#  if __APPLE__
+static void applySavedTimeInfoToOutputFile ( Char *dstName ) {
    IntNative      retVal;
    struct utimbuf uTimBuf;
 
@@ -1220,53 +1254,24 @@ void applySavedTimeInfoToOutputFile ( Char *dstName )
 
    retVal = utime ( dstName, &uTimBuf );
    ERROR_IF_NOT_ZERO ( retVal );
-#  endif
 }
 
-static
-void applySavedFileAttrToOutputFile ( IntNative fd )
-{
-#  if __APPLE__
+static void applySavedFileAttrToOutputFile ( IntNative fd ) {
    IntNative retVal;
 
    retVal = fchmod ( fd, fileMetaInfo.st_mode );
    ERROR_IF_NOT_ZERO ( retVal );
 
    (void) fchown ( fd, fileMetaInfo.st_uid, fileMetaInfo.st_gid );
-   /* chown() will in many cases return with EPERM, which can
-      be safely ignored.
-   */
-#  endif
+   /* chown() will in many cases return with EPERM, which can be safely ignored. */
 }
 
 
 /*---------------------------------------------*/
-static
-Bool containsDubiousChars ( Char* name )
-{
-#  if __APPLE__
-   /* On unix, files can contain any characters and the file expansion
-    * is performed by the shell.
-    */
-   return False;
-#  else /* ! BZ_UNIX */
-   /* On non-unix (Win* platforms), wildcard characters are not allowed in
-    * filenames.
-    */
-   for (; *name != '\0'; name++)
-      if (*name == '?' || *name == '*') return True;
-   return False;
-#  endif /* BZ_UNIX */
-}
+static const int BZ_N_SUFFIX_PAIRS = 4;
 
-
-/*---------------------------------------------*/
-#define BZ_N_SUFFIX_PAIRS 4
-
-const Char* zSuffix[BZ_N_SUFFIX_PAIRS]
-   = { ".bz2", ".bz", ".tbz2", ".tbz" };
-const Char* unzSuffix[BZ_N_SUFFIX_PAIRS]
-   = { "", "", ".tar", ".tar" };
+const Char* zSuffix[BZ_N_SUFFIX_PAIRS] = { ".bz2", ".bz", ".tbz2", ".tbz" };
+const Char* unzSuffix[BZ_N_SUFFIX_PAIRS] = { "", "", ".tar", ".tar" };
 
 static Bool hasSuffix ( Char* s, const Char* suffix ) {
   size_t ns = strlen(s);
@@ -1280,10 +1285,7 @@ static Bool hasSuffix ( Char* s, const Char* suffix ) {
   return False;
 }
 
-static
-Bool mapSuffix ( Char* name,
-                 const Char* oldSuffix,
-                const Char* newSuffix ) {
+static Bool mapSuffix ( Char* name, const Char* oldSuffix, const Char* newSuffix ) {
   if (!hasSuffix(name,oldSuffix)) {
     return False;
   }
@@ -1294,472 +1296,460 @@ Bool mapSuffix ( Char* name,
 
 
 /*---------------------------------------------*/
-static
-void compress ( Char *name )
-{
-   FILE  *inStr;
-   FILE  *outStr;
-   Int32 n, i;
-   struct MY_STAT statBuf;
-
-   deleteOutputOnInterrupt = False;
-
-   if (name == NULL && srcMode != SourceMode_StandardInput2StandardOutput)
-      panic ( "compress: bad modes\n" );
-
-   switch (srcMode) {
-      case SourceMode_StandardInput2StandardOutput:
-         copyFileName ( inName, (Char*)"(stdin)" );
-         copyFileName ( outName, (Char*)"(stdout)" );
-         break;
-      case SourceMode_File2File:
-         copyFileName ( inName, name );
-         copyFileName ( outName, name );
-         strcat ( outName, ".bz2" );
-         break;
-      case SourceMode_File2StandardOutput:
-         copyFileName ( inName, name );
-         copyFileName ( outName, (Char*)"(stdout)" );
-         break;
-   }
-
-   if ( srcMode != SourceMode_StandardInput2StandardOutput && containsDubiousChars ( inName ) ) {
-     if (!quiet) {
-       fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inName );
-     }
-      setExit(1);
-      return;
-   }
-   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inName ) ) {
-      fprintf ( stderr, "%s: Can't open input file %s: %s.\n",
-                progName, inName, strerror(errno) );
-      setExit(1);
-      return;
-   }
-   for (i = 0; i < BZ_N_SUFFIX_PAIRS; i++) {
-      if (hasSuffix(inName, zSuffix[i])) {
-        if (!quiet) {
-          fprintf ( stderr, "%s: Input file %s already has %s suffix.\n", progName, inName, zSuffix[i] );
-        }
-         setExit(1);
-         return;
-      }
-   }
-   if ( srcMode == SourceMode_File2File || srcMode == SourceMode_File2StandardOutput ) {
-      MY_STAT(inName, &statBuf);
-      if ( MY_S_ISDIR(statBuf.st_mode) ) {
-         fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inName);
-         setExit(1);
-         return;
-      }
-   }
-   if ( srcMode == SourceMode_File2File && !forceOverwrite && notAStandardFile ( inName )) {
-     if (!quiet) {
-       fprintf ( stderr, "%s: Input file %s is not a normal file.\n", progName, inName );
-     }
-      setExit(1);
-      return;
-   }
-   if ( srcMode == SourceMode_File2File && fileExists ( outName ) ) {
-      if (forceOverwrite) {
-         remove(outName);
-      } else {
-         fprintf ( stderr, "%s: Output file %s already exists.\n",
-            progName, outName );
-         setExit(1);
-         return;
-      }
-   }
-   if ( srcMode == SourceMode_File2File && !forceOverwrite &&
-        (n=countHardLinks ( inName )) > 0) {
-      fprintf ( stderr, "%s: Input file %s has %d other link%s.\n",
-                progName, inName, n, n > 1 ? "s" : "" );
-      setExit(1);
-      return;
-   }
-
-   if ( srcMode == SourceMode_File2File ) {
-      /* Save the file's meta-info before we open it.  Doing it later
-         means we mess up the access times. */
-      saveInputFileMetaInfo ( inName );
-   }
-
-   switch ( srcMode ) {
-
-      case SourceMode_StandardInput2StandardOutput:
-         inStr = stdin;
-         outStr = stdout;
-         if ( isatty ( fileno ( stdout ) ) ) {
-            fprintf ( stderr,
-                      "%s: I won't write compressed data to a terminal.\n",
-                      progName );
-            fprintf ( stderr, "%s: For help, type: `%s --help'.\n",
-                              progName, progName );
-            setExit(1);
-            return;
-         };
-         break;
-
-      case SourceMode_File2StandardOutput:
-         inStr = fopen ( inName, "rb" );
-         outStr = stdout;
-         if ( isatty ( fileno ( stdout ) ) ) {
-            fprintf ( stderr,
-                      "%s: I won't write compressed data to a terminal.\n",
-                      progName );
-            fprintf ( stderr, "%s: For help, type: `%s --help'.\n",
-                              progName, progName );
-            if ( inStr != NULL ) fclose ( inStr );
-            setExit(1);
-            return;
-         };
-         if ( inStr == NULL ) {
-            fprintf ( stderr, "%s: Can't open input file %s: %s.\n",
-                      progName, inName, strerror(errno) );
-            setExit(1);
-            return;
-         };
-         break;
-
-      case SourceMode_File2File:
-         inStr = fopen ( inName, "rb" );
-         outStr = fopen_output_safely ( outName, "wb" );
-         if ( outStr == NULL) {
-            fprintf ( stderr, "%s: Can't create output file %s: %s.\n",
-                      progName, outName, strerror(errno) );
-            if ( inStr != NULL ) fclose ( inStr );
-            setExit(1);
-            return;
-         }
-         if ( inStr == NULL ) {
-            fprintf ( stderr, "%s: Can't open input file %s: %s.\n",
-                      progName, inName, strerror(errno) );
-            if ( outStr != NULL ) fclose ( outStr );
-            setExit(1);
-            return;
-         };
-         break;
-
-      default:
-         panic ( "compress: bad srcMode" );
-         break;
-   }
-
-   if (verbosity >= 1) {
-      fprintf ( stderr,  "  %s: ", inName );
-      pad ( inName );
-      fflush ( stderr );
-   }
-
-   /*--- Now the input and output handles are sane.  Do the Biz. ---*/
-   outputHandleJustInCase = outStr;
-   deleteOutputOnInterrupt = True;
-   compressStream ( inStr, outStr );
-   outputHandleJustInCase = NULL;
-
-   /*--- If there was an I/O error, we won't get here. ---*/
-   if ( srcMode == SourceMode_File2File ) {
-      applySavedTimeInfoToOutputFile ( outName );
-      deleteOutputOnInterrupt = False;
-      if ( !keepInputFiles ) {
-         IntNative retVal = remove ( inName );
-         ERROR_IF_NOT_ZERO ( retVal );
-      }
-   }
-
-   deleteOutputOnInterrupt = False;
-}
-
-
-/*---------------------------------------------*/
-static
-void uncompress ( Char *name )
-{
-   FILE  *inStr;
-   FILE  *outStr;
-   Int32 n, i;
-   Bool  magicNumberOK;
-   Bool  cantGuess;
-   struct MY_STAT statBuf;
-
-   deleteOutputOnInterrupt = False;
-
-   if (name == NULL && srcMode != SourceMode_StandardInput2StandardOutput)
-      panic ( "uncompress: bad modes\n" );
-
-   cantGuess = False;
-   switch (srcMode) {
-      case SourceMode_StandardInput2StandardOutput:
-         copyFileName ( inName, (Char*)"(stdin)" );
-         copyFileName ( outName, (Char*)"(stdout)" );
-         break;
-      case SourceMode_File2File:
-         copyFileName ( inName, name );
-         copyFileName ( outName, name );
-         for (i = 0; i < BZ_N_SUFFIX_PAIRS; i++)
-            if (mapSuffix(outName,zSuffix[i],unzSuffix[i]))
-               goto zzz;
-         cantGuess = True;
-         strcat ( outName, ".out" );
-         break;
-      case SourceMode_File2StandardOutput:
-         copyFileName ( inName, name );
-         copyFileName ( outName, (Char*)"(stdout)" );
-         break;
-   }
-
-   zzz:
-  if ( srcMode != SourceMode_StandardInput2StandardOutput && containsDubiousChars ( inName ) ) {
+static void compress ( Char *name ) {
+  FILE  *inStr;
+  FILE  *outStr;
+  Int32 n, i;
+  struct MY_STAT statBuf;
+  
+  deleteOutputOnInterrupt = False;
+  
+  if (name == NULL && srcMode != SourceMode_StandardInput2StandardOutput) {
+    printUnexpectedProgramStateAndExitApplication ( "compress: bad modes\n" );
+  }
+  
+  switch (srcMode) {
+    case SourceMode_StandardInput2StandardOutput:
+      copyFileName ( inputFilename, (Char*)"(stdin)" );
+      copyFileName ( outputFilename, (Char*)"(stdout)" );
+      break;
+    case SourceMode_File2File:
+      copyFileName ( inputFilename, name );
+      copyFileName ( outputFilename, name );
+      strcat ( outputFilename, ".bz2" );
+      break;
+    case SourceMode_File2StandardOutput:
+      copyFileName ( inputFilename, name );
+      copyFileName ( outputFilename, (Char*)"(stdout)" );
+      break;
+  }
+  
+  if ( srcMode != SourceMode_StandardInput2StandardOutput && False ) {
     if (!quiet) {
-      fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inName );
+      fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inputFilename );
     }
     setExit(1);
     return;
   }
-   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inName ) ) {
-      fprintf ( stderr, "%s: Can't open input file %s: %s.\n",
-                progName, inName, strerror(errno) );
+  if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
+    fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
+    setExit(1);
+    return;
+  }
+  for (i = 0; i < BZ_N_SUFFIX_PAIRS; i++) {
+    if (hasSuffix(inputFilename, zSuffix[i])) {
+      if (!quiet) {
+        fprintf ( stderr, "%s: Input file %s already has %s suffix.\n", progName, inputFilename, zSuffix[i] );
+      }
       setExit(1);
       return;
-   }
-   if ( srcMode == SourceMode_File2File || srcMode == SourceMode_File2StandardOutput ) {
-      MY_STAT(inName, &statBuf);
-      if ( MY_S_ISDIR(statBuf.st_mode) ) {
-         fprintf( stderr,
-                  "%s: Input file %s is a directory.\n",
-                  progName,inName);
-         setExit(1);
-         return;
-      }
-   }
-   if ( srcMode == SourceMode_File2File && !forceOverwrite && notAStandardFile ( inName )) {
-     if (!quiet) {
-       fprintf ( stderr, "%s: Input file %s is not a normal file.\n", progName, inName );
-     }
+    }
+  }
+  if ( srcMode == SourceMode_File2File || srcMode == SourceMode_File2StandardOutput ) {
+    MY_STAT(inputFilename, &statBuf);
+    if ( MY_S_ISDIR(statBuf.st_mode) ) {
+      fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
       setExit(1);
       return;
-   }
-   if ( /* srcMode == SM_F2F implied && */ cantGuess ) {
-     if (!quiet) {
-       fprintf ( stderr, "%s: Can't guess original name for %s -- using %s\n", progName, inName, outName );
-     }
-      /* just a warning, no return */
-   }
-   if ( srcMode == SourceMode_File2File && fileExists ( outName ) ) {
-      if (forceOverwrite) {
-         remove(outName);
-      }
-      else {
-        fprintf ( stderr, "%s: Output file %s already exists.\n", progName, outName );
+    }
+  }
+  if ( srcMode == SourceMode_File2File && !forceOverwrite && notAStandardFile ( inputFilename )) {
+    if (!quiet) {
+      fprintf ( stderr, "%s: Input file %s is not a normal file.\n", progName, inputFilename );
+    }
+    setExit(1);
+    return;
+  }
+  if ( srcMode == SourceMode_File2File && fileExists ( outputFilename ) ) {
+    if (forceOverwrite) {
+      remove(outputFilename);
+    } else {
+      fprintf ( stderr, "%s: Output file %s already exists.\n", progName, outputFilename );
+      setExit(1);
+      return;
+    }
+  }
+  if ( srcMode == SourceMode_File2File && !forceOverwrite &&
+      (n=countHardLinks ( inputFilename )) > 0) {
+    fprintf ( stderr, "%s: Input file %s has %d other link%s.\n", progName, inputFilename, n, n > 1 ? "s" : "" );
+    setExit(1);
+    return;
+  }
+  
+  if ( srcMode == SourceMode_File2File ) {
+    /* Save the file's meta-info before we open it.  Doing it later
+     means we mess up the access times. */
+    saveInputFileMetaInfo ( inputFilename );
+  }
+  
+  switch ( srcMode ) {
+      
+    case SourceMode_StandardInput2StandardOutput:
+      inStr = stdin;
+      outStr = stdout;
+      if ( isatty ( fileno ( stdout ) ) ) {
+        fprintf ( stderr,
+                 "%s: I won't write compressed data to a terminal.\n",
+                 progName );
+        fprintf ( stderr, "%s: For help, type: `%s --help'.\n", progName, progName );
         setExit(1);
         return;
       }
-   }
-   if ( srcMode == SourceMode_File2File && !forceOverwrite &&
-        (n=countHardLinks ( inName ) ) > 0) {
-      fprintf ( stderr, "%s: Input file %s has %d other link%s.\n",
-                progName, inName, n, n > 1 ? "s" : "" );
+      break;
+      
+    case SourceMode_File2StandardOutput:
+      inStr = fopen ( inputFilename, "rb" );
+      outStr = stdout;
+      if ( isatty ( fileno ( stdout ) ) ) {
+        fprintf ( stderr, "%s: I won't write compressed data to a terminal.\n", progName );
+        fprintf ( stderr, "%s: For help, type: `%s --help'.\n", progName, progName );
+        if ( inStr != NULL ) {
+          fclose ( inStr );
+        }
+        setExit(1);
+        return;
+      }
+      if ( inStr == NULL ) {
+        fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
+        setExit(1);
+        return;
+      }
+      break;
+      
+    case SourceMode_File2File:
+      inStr = fopen ( inputFilename, "rb" );
+      outStr = fopen_output_safely ( outputFilename, "wb" );
+      if ( outStr == NULL) {
+        fprintf ( stderr, "%s: Can't create output file %s: %s.\n",
+                 progName, outputFilename, strerror(errno) );
+        if ( inStr != NULL ) fclose ( inStr );
+        setExit(1);
+        return;
+      }
+      if ( inStr == NULL ) {
+        fprintf ( stderr, "%s: Can't open input file %s: %s.\n",
+                 progName, inputFilename, strerror(errno) );
+        if ( outStr != NULL ) fclose ( outStr );
+        setExit(1);
+        return;
+      }
+      break;
+      
+    default:
+      printUnexpectedProgramStateAndExitApplication ( "compress: bad srcMode" );
+      break;
+  }
+  
+  if (verbosity >= 1) {
+    fprintf ( stderr,  "  %s: ", inputFilename );
+    pad ( inputFilename );
+    fflush ( stderr );
+  }
+  
+  /*--- Now the input and output handles are sane.  Do the Biz. ---*/
+  outputHandleJustInCase = outStr;
+  deleteOutputOnInterrupt = True;
+  compressStream ( inStr, outStr );
+  outputHandleJustInCase = NULL;
+  
+  /*--- If there was an I/O error, we won't get here. ---*/
+  if ( srcMode == SourceMode_File2File ) {
+    applySavedTimeInfoToOutputFile ( outputFilename );
+    deleteOutputOnInterrupt = False;
+    if ( !keepInputFiles ) {
+      IntNative retVal = remove ( inputFilename );
+      ERROR_IF_NOT_ZERO ( retVal );
+    }
+  }
+  
+  deleteOutputOnInterrupt = False;
+}
+
+
+/*---------------------------------------------*/
+static void uncompress ( Char *name ) {
+  FILE  *inStr;
+  FILE  *outStr;
+  Int32 n, i;
+  Bool  magicNumberOK;
+  Bool  cantGuess;
+  struct MY_STAT statBuf;
+  
+  deleteOutputOnInterrupt = False;
+  
+  if (name == NULL && srcMode != SourceMode_StandardInput2StandardOutput) {
+    printUnexpectedProgramStateAndExitApplication ( "uncompress: bad modes\n" );
+  }
+  
+  cantGuess = False;
+  switch (srcMode) {
+    case SourceMode_StandardInput2StandardOutput:
+      copyFileName ( inputFilename, (Char*)"(stdin)" );
+      copyFileName ( outputFilename, (Char*)"(stdout)" );
+      break;
+    case SourceMode_File2File:
+      copyFileName ( inputFilename, name );
+      copyFileName ( outputFilename, name );
+      for (i = 0; i < BZ_N_SUFFIX_PAIRS; i++) {
+        if (mapSuffix(outputFilename,zSuffix[i],unzSuffix[i])) {
+          goto zzz;
+        }
+      }
+      cantGuess = True;
+      strcat ( outputFilename, ".out" );
+      break;
+    case SourceMode_File2StandardOutput:
+      copyFileName ( inputFilename, name );
+      copyFileName ( outputFilename, (Char*)"(stdout)" );
+      break;
+  }
+  
+zzz:
+  if ( srcMode != SourceMode_StandardInput2StandardOutput && False ) {
+    if (!quiet) {
+      fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inputFilename );
+    }
+    setExit(1);
+    return;
+  }
+  if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
+    fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
+    setExit(1);
+    return;
+  }
+  if ( srcMode == SourceMode_File2File || srcMode == SourceMode_File2StandardOutput ) {
+    MY_STAT(inputFilename, &statBuf);
+    if ( MY_S_ISDIR(statBuf.st_mode) ) {
+      fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
       setExit(1);
       return;
-   }
-
-   if ( srcMode == SourceMode_File2File ) {
-      /* Save the file's meta-info before we open it.  Doing it later
-         means we mess up the access times. */
-      saveInputFileMetaInfo ( inName );
-   }
-
-   switch ( srcMode ) {
-
-      case SourceMode_StandardInput2StandardOutput:
-         inStr = stdin;
-         outStr = stdout;
-         if ( isatty ( fileno ( stdin ) ) ) {
-            fprintf ( stderr,
-                      "%s: I won't read compressed data from a terminal.\n",
-                      progName );
-            fprintf ( stderr, "%s: For help, type: `%s --help'.\n",
-                              progName, progName );
-            setExit(1);
-            return;
-         };
-         break;
-
-      case SourceMode_File2StandardOutput:
-         inStr = fopen ( inName, "rb" );
-         outStr = stdout;
-         if ( inStr == NULL ) {
-            fprintf ( stderr, "%s: Can't open input file %s:%s.\n",
-                      progName, inName, strerror(errno) );
-            if ( inStr != NULL ) fclose ( inStr );
-            setExit(1);
-            return;
-         };
-         break;
-
-      case SourceMode_File2File:
-         inStr = fopen ( inName, "rb" );
-         outStr = fopen_output_safely ( outName, "wb" );
-         if ( outStr == NULL) {
-            fprintf ( stderr, "%s: Can't create output file %s: %s.\n",
-                      progName, outName, strerror(errno) );
-            if ( inStr != NULL ) fclose ( inStr );
-            setExit(1);
-            return;
-         }
-         if ( inStr == NULL ) {
-            fprintf ( stderr, "%s: Can't open input file %s: %s.\n",
-                      progName, inName, strerror(errno) );
-            if ( outStr != NULL ) fclose ( outStr );
-            setExit(1);
-            return;
-         };
-         break;
-
-      default:
-         panic ( "uncompress: bad srcMode" );
-         break;
-   }
-
-   if (verbosity >= 1) {
-      fprintf ( stderr, "  %s: ", inName );
-      pad ( inName );
-      fflush ( stderr );
-   }
-
-   /*--- Now the input and output handles are sane.  Do the Biz. ---*/
-   outputHandleJustInCase = outStr;
-   deleteOutputOnInterrupt = True;
-   magicNumberOK = uncompressStream ( inStr, outStr );
-   outputHandleJustInCase = NULL;
-
-   /*--- If there was an I/O error, we won't get here. ---*/
-   if ( magicNumberOK ) {
-      if ( srcMode == SourceMode_File2File ) {
-         applySavedTimeInfoToOutputFile ( outName );
-         deleteOutputOnInterrupt = False;
-         if ( !keepInputFiles ) {
-            IntNative retVal = remove ( inName );
-            ERROR_IF_NOT_ZERO ( retVal );
-         }
+    }
+  }
+  if ( srcMode == SourceMode_File2File && !forceOverwrite && notAStandardFile ( inputFilename )) {
+    if (!quiet) {
+      fprintf ( stderr, "%s: Input file %s is not a normal file.\n", progName, inputFilename );
+    }
+    setExit(1);
+    return;
+  }
+  if ( /* srcMode == SM_F2F implied && */ cantGuess ) {
+    if (!quiet) {
+      fprintf ( stderr, "%s: Can't guess original name for %s -- using %s\n", progName, inputFilename, outputFilename );
+    }
+    /* just a warning, no return */
+  }
+  if ( srcMode == SourceMode_File2File && fileExists ( outputFilename ) ) {
+    if (forceOverwrite) {
+      remove(outputFilename);
+    }
+    else {
+      fprintf ( stderr, "%s: Output file %s already exists.\n", progName, outputFilename );
+      setExit(1);
+      return;
+    }
+  }
+  if ( srcMode == SourceMode_File2File && !forceOverwrite &&
+      (n=countHardLinks ( inputFilename ) ) > 0) {
+    fprintf ( stderr, "%s: Input file %s has %d other link%s.\n", progName, inputFilename, n, n > 1 ? "s" : "" );
+    setExit(1);
+    return;
+  }
+  
+  if ( srcMode == SourceMode_File2File ) {
+    /* Save the file's meta-info before we open it.  Doing it later
+     means we mess up the access times. */
+    saveInputFileMetaInfo ( inputFilename );
+  }
+  
+  switch ( srcMode ) {
+      
+    case SourceMode_StandardInput2StandardOutput:
+      inStr = stdin;
+      outStr = stdout;
+      if ( isatty ( fileno ( stdin ) ) ) {
+        fprintf ( stderr, "%s: I won't read compressed data from a terminal.\n", progName );
+        fprintf ( stderr, "%s: For help, type: `%s --help'.\n", progName, progName );
+        setExit(1);
+        return;
+      };
+      break;
+      
+    case SourceMode_File2StandardOutput:
+      inStr = fopen ( inputFilename, "rb" );
+      outStr = stdout;
+      if ( inStr == NULL ) {
+        fprintf ( stderr, "%s: Can't open input file %s:%s.\n", progName, inputFilename, strerror(errno) );
+        if ( inStr != NULL ) {
+          fclose ( inStr );
+        }
+        setExit(1);
+        return;
       }
-   } else {
-      unzFailsExist = True;
+      break;
+      
+    case SourceMode_File2File:
+      inStr = fopen ( inputFilename, "rb" );
+      outStr = fopen_output_safely ( outputFilename, "wb" );
+      if ( outStr == NULL) {
+        fprintf ( stderr, "%s: Can't create output file %s: %s.\n", progName, outputFilename, strerror(errno) );
+        if ( inStr != NULL ) {
+          fclose ( inStr );
+        }
+        setExit(1);
+        return;
+      }
+      if ( inStr == NULL ) {
+        fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
+        if ( outStr != NULL ) {
+          fclose ( outStr );
+        }
+        setExit(1);
+        return;
+      }
+      break;
+      
+    default:
+      printUnexpectedProgramStateAndExitApplication ( "uncompress: bad srcMode" );
+      break;
+  }
+  
+  if (verbosity >= 1) {
+    fprintf ( stderr, "  %s: ", inputFilename );
+    pad ( inputFilename );
+    fflush ( stderr );
+  }
+  
+  /*--- Now the input and output handles are sane.  Do the Biz. ---*/
+  outputHandleJustInCase = outStr;
+  deleteOutputOnInterrupt = True;
+  magicNumberOK = uncompressStream ( inStr, outStr );
+  outputHandleJustInCase = NULL;
+  
+  /*--- If there was an I/O error, we won't get here. ---*/
+  if ( magicNumberOK ) {
+    if ( srcMode == SourceMode_File2File ) {
+      applySavedTimeInfoToOutputFile ( outputFilename );
       deleteOutputOnInterrupt = False;
-      if ( srcMode == SourceMode_File2File ) {
-         IntNative retVal = remove ( outName );
-         ERROR_IF_NOT_ZERO ( retVal );
+      if ( !keepInputFiles ) {
+        IntNative retVal = remove ( inputFilename );
+        ERROR_IF_NOT_ZERO ( retVal );
       }
-   }
-   deleteOutputOnInterrupt = False;
-
-   if ( magicNumberOK ) {
-      if (verbosity >= 1)
-         fprintf ( stderr, "done\n" );
-   } else {
-      setExit(2);
-      if (verbosity >= 1)
-         fprintf ( stderr, "not a bzip2 file.\n" ); else
-         fprintf ( stderr,
-                   "%s: %s is not a bzip2 file.\n",
-                   progName, inName );
-   }
-
+    }
+  }
+  else {
+    unzFailsExist = True;
+    deleteOutputOnInterrupt = False;
+    if ( srcMode == SourceMode_File2File ) {
+      IntNative retVal = remove ( outputFilename );
+      ERROR_IF_NOT_ZERO ( retVal );
+    }
+  }
+  deleteOutputOnInterrupt = False;
+  
+  if ( magicNumberOK ) {
+    if (verbosity >= 1) {
+      fprintf ( stderr, "done\n" );
+    }
+  }
+  else {
+    setExit(2);
+    if (verbosity >= 1) {
+      fprintf ( stderr, "not a bzip2 file.\n" );
+    }
+    else {
+      fprintf ( stderr, "%s: %s is not a bzip2 file.\n", progName, inputFilename );
+    }
+  }
 }
 
 
 /*---------------------------------------------*/
-static
-void testf ( Char *name )
-{
-   FILE *inStr;
-   Bool allOK;
-   struct MY_STAT statBuf;
-
-   deleteOutputOnInterrupt = False;
-
-   if (name == NULL && srcMode != SourceMode_StandardInput2StandardOutput)
-      panic ( "testf: bad modes\n" );
-
-   copyFileName ( outName, (Char*)"(none)" );
-   switch (srcMode) {
-      case SourceMode_StandardInput2StandardOutput: copyFileName ( inName, (Char*)"(stdin)" ); break;
-      case SourceMode_File2File: copyFileName ( inName, name ); break;
-      case SourceMode_File2StandardOutput: copyFileName ( inName, name ); break;
-   }
-
-   if ( srcMode != SourceMode_StandardInput2StandardOutput && containsDubiousChars ( inName ) ) {
-     if (!quiet) {
-       fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inName );
-     }
+static void testf ( Char *name ) {
+  FILE *inStr;
+  Bool allOK;
+  struct MY_STAT statBuf;
+  
+  deleteOutputOnInterrupt = False;
+  
+  if (name == NULL && srcMode != SourceMode_StandardInput2StandardOutput)
+    printUnexpectedProgramStateAndExitApplication ( "testf: bad modes\n" );
+  
+  copyFileName ( outputFilename, (Char*)"(none)" );
+  switch (srcMode) {
+    case SourceMode_StandardInput2StandardOutput: copyFileName ( inputFilename, (Char*)"(stdin)" ); break;
+    case SourceMode_File2File: copyFileName ( inputFilename, name ); break;
+    case SourceMode_File2StandardOutput: copyFileName ( inputFilename, name ); break;
+  }
+  
+  if ( srcMode != SourceMode_StandardInput2StandardOutput && False ) {
+    if (!quiet) {
+      fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inputFilename );
+    }
+    setExit(1);
+    return;
+  }
+  if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
+    fprintf ( stderr, "%s: Can't open input %s: %s.\n", progName, inputFilename, strerror(errno) );
+    setExit(1);
+    return;
+  }
+  if ( srcMode != SourceMode_StandardInput2StandardOutput ) {
+    MY_STAT(inputFilename, &statBuf);
+    if ( MY_S_ISDIR(statBuf.st_mode) ) {
+      fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
       setExit(1);
       return;
-   }
-   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inName ) ) {
-      fprintf ( stderr, "%s: Can't open input %s: %s.\n", progName, inName, strerror(errno) );
-      setExit(1);
-      return;
-   }
-   if ( srcMode != SourceMode_StandardInput2StandardOutput ) {
-      MY_STAT(inName, &statBuf);
-      if ( MY_S_ISDIR(statBuf.st_mode) ) {
-         fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inName);
-         setExit(1);
-         return;
+    }
+  }
+  
+  switch ( srcMode ) {
+      
+    case SourceMode_StandardInput2StandardOutput:
+      if ( isatty ( fileno ( stdin ) ) ) {
+        fprintf ( stderr, "%s: I won't read compressed data from a terminal.\n", progName );
+        fprintf ( stderr, "%s: For help, type: `%s --help'.\n", progName, progName );
+        setExit(1);
+        return;
+      };
+      inStr = stdin;
+      break;
+      
+    case SourceMode_File2StandardOutput: case SourceMode_File2File:
+      inStr = fopen ( inputFilename, "rb" );
+      if ( inStr == NULL ) {
+        fprintf ( stderr, "%s: Can't open input file %s:%s.\n", progName, inputFilename, strerror(errno) );
+        setExit(1);
+        return;
       }
-   }
-
-   switch ( srcMode ) {
-
-      case SourceMode_StandardInput2StandardOutput:
-         if ( isatty ( fileno ( stdin ) ) ) {
-            fprintf ( stderr,
-                      "%s: I won't read compressed data from a terminal.\n",
-                      progName );
-            fprintf ( stderr, "%s: For help, type: `%s --help'.\n",
-                              progName, progName );
-            setExit(1);
-            return;
-         };
-         inStr = stdin;
-         break;
-
-      case SourceMode_File2StandardOutput: case SourceMode_File2File:
-         inStr = fopen ( inName, "rb" );
-         if ( inStr == NULL ) {
-            fprintf ( stderr, "%s: Can't open input file %s:%s.\n",
-                      progName, inName, strerror(errno) );
-            setExit(1);
-            return;
-         };
-         break;
-
-      default:
-         panic ( "testf: bad srcMode" );
-         break;
-   }
-
-   if (verbosity >= 1) {
-      fprintf ( stderr, "  %s: ", inName );
-      pad ( inName );
-      fflush ( stderr );
-   }
-
-   /*--- Now the input handle is sane.  Do the Biz. ---*/
-   outputHandleJustInCase = NULL;
-   allOK = testStream ( inStr );
-
-   if (allOK && verbosity >= 1) fprintf ( stderr, "ok\n" );
-   if (!allOK) testFailsExist = True;
+      break;
+      
+    default:
+      printUnexpectedProgramStateAndExitApplication ( "testf: bad srcMode" );
+      break;
+  }
+  
+  if (verbosity >= 1) {
+    fprintf ( stderr, "  %s: ", inputFilename );
+    pad ( inputFilename );
+    fflush ( stderr );
+  }
+  
+  /*--- Now the input handle is sane.  Do the Biz. ---*/
+  outputHandleJustInCase = NULL;
+  allOK = testStream ( inStr );
+  
+  if (allOK && verbosity >= 1) {
+    fprintf ( stderr, "ok\n" );
+  }
+  if (!allOK) {
+    testFailsExist = True;
+  }
 }
 
 
 /*---------------------------------------------*/
-static
-void license ( void )
-{
+static void license ( void ) {
    fprintf ( stdout,
-
     "bzip2, a block-sorting file compressor.  "
     "Version %s.\n"
     "   \n"
@@ -1859,7 +1849,7 @@ static void *myMalloc ( Int32 n ) {
   
   p = malloc ( (size_t)n );
   if (p == NULL) {
-    outOfMemory ();
+    printOutOfMemoryAndExitApplication ();
   }
   return p;
 }
@@ -1922,10 +1912,10 @@ static void addFlagsFromEnvVar ( Cell** argList, Char* varName ) {
           k = FILE_NAME_LEN-10;
         }
         for (j = 0; j < k; j++) {
-          tmpName[j] = p[j];
+          tmporaryFilename[j] = p[j];
         }
-        tmpName[k] = 0;
-        APPEND_FLAG(*argList, tmpName);
+        tmporaryFilename[k] = 0;
+        APPEND_FLAG(*argList, tmporaryFilename);
       }
     }
   }
@@ -1948,7 +1938,7 @@ int main ( int argc, char *argv[] ) {
   if (sizeof(Int32) != 4 || sizeof(UInt32) != 4  ||
       sizeof(Int16) != 2 || sizeof(UInt16) != 2  ||
       sizeof(Char)  != 1 || sizeof(UChar)  != 1) {
-    printConfigErrorAndExit();
+    printConfigErrorAndExitApplication();
   }
   
   // Initialisiere die Variablen mit Standardwerten
@@ -1971,8 +1961,8 @@ int main ( int argc, char *argv[] ) {
   signal (SIGSEGV, mySIGSEGVorSIGBUScatcher);
   signal (SIGBUS,  mySIGSEGVorSIGBUScatcher);
   
-  copyFileName ( inName,  (Char*)"(none)" );
-  copyFileName ( outName, (Char*)"(none)" );
+  copyFileName ( inputFilename,  (Char*)"(none)" );
+  copyFileName ( outputFilename, (Char*)"(none)" );
   
   copyFileName ( progNameReally, argv[0] );
   progName = &progNameReally[0];
@@ -1995,7 +1985,7 @@ int main ( int argc, char *argv[] ) {
   
   
   /*-- Find the length of the longest filename --*/
-  longestFileName = 7;
+  longestFilename = 7;
   numFileNames    = 0;
   decode          = True;
   for (aa = argList; aa != NULL; aa = aa->link) {
@@ -2007,8 +1997,8 @@ int main ( int argc, char *argv[] ) {
       continue;
     }
     numFileNames += 1;
-    if (longestFileName < (Int32)strlen(aa->name) ) {
-      longestFileName = (Int32)strlen(aa->name);
+    if (longestFilename < (Int32)strlen(aa->name) ) {
+      longestFilename = (Int32)strlen(aa->name);
     }
   }
   
