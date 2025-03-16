@@ -1682,7 +1682,7 @@ static BZFILE * bzopen_or_bzdopen
   int    writing       = 0;
   char   mode2[10]     = "";
   FILE   *fp           = NULL;
-  BZFILE *bzfp         = NULL;
+  BZFILE *bzip2FilePointer         = NULL;
   int    verbosity     = 0;
   int    workFactor    = 30;
   int    smallMode     = 0;
@@ -1726,12 +1726,9 @@ static BZFILE * bzopen_or_bzdopen
     else {
       fp = fopen(path,mode2);
     }
-  } else {
-#ifdef BZ_STRICT_ANSI
-    fp = NULL;
-#else
+  }
+  else {
     fp = fdopen(fd,mode2);
-#endif
   }
   if (fp == NULL) {
     return NULL;
@@ -1739,20 +1736,24 @@ static BZFILE * bzopen_or_bzdopen
   
   if (writing) {
     /* Guard against total chaos and anarchy -- JRS */
-    if (blockSize100k < 1) blockSize100k = 1;
-    if (blockSize100k > 9) blockSize100k = 9;
-    bzfp = BZ2_bzWriteOpen (&bzerr,fp,blockSize100k,verbosity,workFactor);
+    if (blockSize100k < 1) {
+      blockSize100k = 1;
+    }
+    if (blockSize100k > 9) {
+      blockSize100k = 9;
+    }
+    bzip2FilePointer = BZ2_bzWriteOpen (&bzerr,fp,blockSize100k,verbosity,workFactor);
   }
   else {
-    bzfp = BZ2_bzReadOpen (&bzerr,fp,verbosity,smallMode,unused,nUnused);
+    bzip2FilePointer = BZ2_bzReadOpen (&bzerr,fp,verbosity,smallMode,unused,nUnused);
   }
-  if (bzfp == NULL) {
+  if (bzip2FilePointer == NULL) {
     if (fp != stdin && fp != stdout) {
       fclose(fp);
     }
     return NULL;
   }
-  return bzfp;
+  return bzip2FilePointer;
 }
 
 
@@ -1783,7 +1784,8 @@ int BZ2_bzread (BZFILE* b, void* buf, int len ) {
   nread = BZ2_bzRead(&bzerr,b,buf,len);
   if (bzerr == BZ_OK || bzerr == BZ_STREAM_END) {
     return nread;
-  } else {
+  }
+  else {
     return -1;
   }
 }
@@ -1796,7 +1798,8 @@ int BZ2_bzwrite (BZFILE* b, void* buf, int len ) {
    BZ2_bzWrite(&bzerr,b,buf,len);
    if(bzerr == BZ_OK) {
       return len;
-   }else{
+   }
+   else{
       return -1;
    }
 }
@@ -1818,7 +1821,7 @@ void BZ2_bzclose (BZFILE* b) {
     return;
   }
   fp = ((bzFile *)b)->handle;
-  if (((bzFile*)b)->writing){
+  if (((bzFile*)b)->writing) {
     BZ2_bzWriteClose(&bzerr,b,0,NULL,NULL);
     if(bzerr != BZ_OK) {
       BZ2_bzWriteClose(NULL,b,1,NULL,NULL);
@@ -1827,7 +1830,9 @@ void BZ2_bzclose (BZFILE* b) {
   else {
     BZ2_bzReadClose(&bzerr,b);
   }
+  // wenn der Dateizeiger nicht auf die Standard-Eingabe zeigt und wenn der Dateizeiger nicht auf Standard-Ausgabe zeigt
   if (fp!=stdin && fp!=stdout) {
+    // Schliesse die Datei hinter dem Dateizeiger
     fclose(fp);
   }
 }

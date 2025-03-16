@@ -32,9 +32,9 @@
 #include <ctype.h>
 #include "bzlib.h"
 
-#define ERROR_IF_EOF(i)       { if ((i) == EOF)  handleIoErrors(); }
-#define ERROR_IF_NOT_ZERO(i)  { if ((i) != 0)    handleIoErrors(); }
-#define ERROR_IF_MINUS_ONE(i) { if ((i) == (-1)) handleIoErrors(); }
+#define ERROR_IF_EOF(i)       { if ((i) == EOF)  handleIoErrorsAndExitApplication(); }
+#define ERROR_IF_NOT_ZERO(i)  { if ((i) != 0)    handleIoErrorsAndExitApplication(); }
+#define ERROR_IF_MINUS_ONE(i) { if ((i) == (-1)) handleIoErrorsAndExitApplication(); }
 
 /*---------------------------------------------*/
 /*--
@@ -154,11 +154,11 @@ FILE    *outputHandleJustInCase;
 Int32   workFactor;
 
 static void    panic                 ( const Char* ) NORETURN;
-static void    handleIoErrors        ( void )        NORETURN;
+static void    handleIoErrorsAndExitApplication        ( void )        NORETURN;
 static void    outOfMemory           ( void )        NORETURN;
-static void    configError           ( void )        NORETURN;
+static void    printConfigErrorAndExit           ( void )        NORETURN;
 static void    crcError              ( void )        NORETURN;
-static void    cleanUpAndFail        ( Int32 )       NORETURN;
+static void    cleanUpAndFailAndExitApplication        ( Int32 )       NORETURN;
 static void    compressedStreamEOF   ( void )        NORETURN;
 
 static void    copyFileName ( Char*, Char* );
@@ -257,7 +257,7 @@ static Int32 uInt64_qrm10 ( UInt64* n ) {
 }
 
 
-/**
+/** (KI generierte Dokumentation)
  @brief Konvertiert einen UInt64-Wert in eine ASCII-Zeichenkette.
  
  Diese Funktion konvertiert einen gegebenen UInt64-Wert in seine entsprechende
@@ -312,7 +312,7 @@ static void uInt64_toAscii ( char* outbuf, UInt64* n ) {
 /*---------------------------------------------------*/
 
 /*---------------------------------------------*/
-/**
+/**  (KI generierte Dokumentation)
  @brief Überprüft, ob das Dateiende eines Dateistreams erreicht wurde.
  
  Diese Funktion überprüft, ob das Ende eines gegebenen Dateistreams erreicht wurde,
@@ -376,13 +376,13 @@ inline void handleErrors (int* bzerror, BZFILE* bzf, int abandon, unsigned int* 
                       nbytes_out_lo32, nbytes_out_hi32 );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
-      configError();
+      printConfigErrorAndExit();
       break;
     case BZ_MEM_ERROR:
       outOfMemory ();
       break;
     case BZ_IO_ERROR:
-      handleIoErrors();
+      handleIoErrorsAndExitApplication();
       break;
     default:
       panic ( "compress:unexpected error" );
@@ -410,11 +410,11 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
   
   if (ferror(stream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   if (ferror(zStream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   
   bzf = BZ2_bzWriteOpen ( &bzerr, zStream, blockSize100k, verbosity, workFactor );
@@ -438,7 +438,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     // prüfe, ob beim lesen ein Fehler aufgetreten ist
     if (ferror(stream)) {
       // führe die Fehlerbehandlung aus
-      handleIoErrors();
+      handleIoErrorsAndExitApplication();
     }
     // Wenn aus dem Strom etwas gelesen wurde
     if (countOfElementsInBuffer > 0) {
@@ -459,38 +459,38 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
   
   if (ferror(zStream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   // empfehle dem Betriebssystem den Buffer für zStream zu leeren
   ret = fflush ( zStream );
   // wenn ein Fehler aufgetreten ist
   if (ret == EOF) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   if (zStream != stdout) {
     Int32 fd = fileno ( zStream );
     if (fd < 0) {
       // führe die Fehlerbehandlung aus
-      handleIoErrors();
+      handleIoErrorsAndExitApplication();
     }
     applySavedFileAttrToOutputFile ( fd );
     ret = fclose ( zStream );
     outputHandleJustInCase = NULL;
     if (ret == EOF) {
       // führe die Fehlerbehandlung aus
-      handleIoErrors();
+      handleIoErrorsAndExitApplication();
     }
   }
   outputHandleJustInCase = NULL;
   if (ferror(stream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   ret = fclose ( stream );
   if (ret == EOF) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   
   if (verbosity >= 1) {
@@ -542,11 +542,11 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
   
   if (ferror(stream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   if (ferror(zStream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   
   while (True) {
@@ -567,7 +567,7 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
       }
       if (ferror(stream)) {
         // führe die Fehlerbehandlung aus
-        handleIoErrors();
+        handleIoErrorsAndExitApplication();
       }
     }
     if (bzerr != BZ_STREAM_END) {
@@ -597,37 +597,37 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
 closeok:
   if (ferror(zStream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   if (stream != stdout) {
     Int32 fd = fileno ( stream );
     if (fd < 0) {
       // führe die Fehlerbehandlung aus
-      handleIoErrors();
+      handleIoErrorsAndExitApplication();
     }
     applySavedFileAttrToOutputFile ( fd );
   }
   ret = fclose ( zStream );
   if (ret == EOF) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   
   if (ferror(stream)) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   ret = fflush ( stream );
   if (ret != 0) {
     // führe die Fehlerbehandlung aus
-    handleIoErrors();
+    handleIoErrorsAndExitApplication();
   }
   if (stream != stdout) {
     ret = fclose ( stream );
     outputHandleJustInCase = NULL;
     if (ret == EOF) {
       // führe die Fehlerbehandlung aus
-      handleIoErrors();
+      handleIoErrorsAndExitApplication();
     }
   }
   outputHandleJustInCase = NULL;
@@ -646,14 +646,14 @@ trycat:
       nread = fread ( obuf, sizeof(UChar), 5000, zStream );
       if (ferror(zStream)) {
         // führe die Fehlerbehandlung aus
-        handleIoErrors();
+        handleIoErrorsAndExitApplication();
       }
       if (nread > 0) {
         fwrite ( obuf, sizeof(UChar), nread, stream );
       }
       if (ferror(stream)) {
         // führe die Fehlerbehandlung aus
-        handleIoErrors();
+        handleIoErrorsAndExitApplication();
       }
     }
     goto closeok;
@@ -663,9 +663,9 @@ errhandler:
   BZ2_bzReadClose ( &bzerr_dummy, bzf );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
-      configError(); break;
+      printConfigErrorAndExit(); break;
     case BZ_IO_ERROR:
-      handleIoErrors(); break;
+      handleIoErrorsAndExitApplication(); break;
     case BZ_DATA_ERROR:
       crcError();
     case BZ_MEM_ERROR:
@@ -708,7 +708,7 @@ static Bool testStream ( FILE *zStream ) {
   
   SET_BINARY_MODE(zStream);
   if (ferror(zStream)) {
-    goto errhandler_io;
+    handleIoErrorsAndExitApplication();
   }
   
   while (True) {
@@ -748,11 +748,11 @@ static Bool testStream ( FILE *zStream ) {
   }
   
   if (ferror(zStream)) {
-    goto errhandler_io;
+    handleIoErrorsAndExitApplication();
   }
   ret = fclose ( zStream );
   if (ret == EOF) {
-    goto errhandler_io;
+    handleIoErrorsAndExitApplication();
   }
   
   if (verbosity >= 2) {
@@ -766,37 +766,31 @@ errhandler:
     fprintf ( stderr, "%s: %s: ", progName, inName );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
-      configError();
+      printConfigErrorAndExit();
       break;
     case BZ_IO_ERROR:
-errhandler_io:
       // rufe die Funktion `ioError` auf (welche später `exit(int)` aufruft
-      handleIoErrors();
+      handleIoErrorsAndExitApplication();
       break;
     case BZ_DATA_ERROR:
-      fprintf ( stderr,
-               "data integrity (CRC) error in data\n" );
+      fprintf ( stderr, "data integrity (CRC) error in data\n" );
       return False;
     case BZ_MEM_ERROR:
       outOfMemory();
     case BZ_UNEXPECTED_EOF:
-      fprintf ( stderr,
-               "file ends unexpectedly\n" );
+      fprintf ( stderr, "file ends unexpectedly\n" );
       return False;
     case BZ_DATA_ERROR_MAGIC:
       if (zStream != stdin) {
         fclose(zStream);
       }
       if (streamNo == 1) {
-        fprintf ( stderr,
-                 "bad magic number (file not created by bzip2)\n" );
-        
+        fprintf ( stderr, "bad magic number (file not created by bzip2)\n" );
         return False;
       }
       else {
         if (noisy) {
-          fprintf ( stderr,
-                   "trailing garbage after EOF ignored\n" );
+          fprintf ( stderr, "trailing garbage after EOF ignored\n" );
         }
         return True;
       }
@@ -813,10 +807,39 @@ errhandler_io:
 /*--- Error [non-] handling grunge                ---*/
 /*---------------------------------------------------*/
 
-/*---------------------------------------------*/
-static void setExit ( Int32 v ) {
-  if (v > exitValue) {
-    exitValue = v;
+/** (KI generiert nach funktionsinterner Kommentierung)
+ @brief Setzt den Exit-Statuscode der Anwendung.
+ 
+ Diese Funktion aktualisiert den globalen Exit-Statuscode der Anwendung,
+ falls der neue Wert größer ist als der aktuell gespeicherte Wert.
+ 
+ @param newExitValue Der neue Exit-Statuscode, der gesetzt werden soll.
+ 
+ @discussion
+ Die Funktion vergleicht den übergebenen `newExitValue` mit dem aktuell
+ gespeicherten `exitValue`. Wenn `newExitValue` größer ist, wird er
+ als neuer `exitValue` gespeichert. Andernfalls bleibt der aktuelle
+ `exitValue` unverändert.
+ 
+ @note
+ Diese Funktion dient dazu, den höchsten aufgetretenen Fehlercode während
+ der Ausführung der Anwendung zu speichern.
+ 
+ @code
+ setExit(1); // Setzt den Exit-Code auf 1, falls er bisher kleiner war
+ setExit(2); // Setzt den Exit-Code auf 2, falls er bisher kleiner war
+ @endcode
+ 
+ @see exit
+ */
+static void setExit ( Int32 newExitValue ) {
+  // wenn der übergebene neue Wert für den Statuscode der Anwendung größer ist als der bisher gespeicherte Statuscode
+  if (newExitValue > exitValue) {
+    // speichere den neuen Statuscode
+    exitValue = newExitValue;
+  }
+  else {
+    // behalte den bisherigen Statuscode
   }
 }
 
@@ -848,7 +871,7 @@ static void showFileNames ( void ) {
 
 
 /*---------------------------------------------*/
-static void cleanUpAndFail ( Int32 ec ) {
+static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
   IntNative      retVal;
   struct MY_STAT statBuf;
   
@@ -897,7 +920,7 @@ static void panic ( const Char* s ) {
            "\thttps://gitlab.com/bzip2/bzip2/-/issues\n",
            progName, s );
   showFileNames();
-  cleanUpAndFail( 3 );
+  cleanUpAndFailAndExitApplication( 3 );
 }
 
 
@@ -908,7 +931,7 @@ static void crcError ( void ) {
            progName );
   showFileNames();
   cadvise();
-  cleanUpAndFail( 2 );
+  cleanUpAndFailAndExitApplication( 2 );
 }
 
 
@@ -923,16 +946,16 @@ static void compressedStreamEOF ( void ) {
     showFileNames();
     cadvise();
   }
-  cleanUpAndFail( 2 );
+  cleanUpAndFailAndExitApplication( 2 );
 }
 
 
 /*---------------------------------------------*/
-static void handleIoErrors ( void ) {
+static void handleIoErrorsAndExitApplication ( void ) {
   fprintf ( stderr, "\n%s: I/O or other error, bailing out.  " "Possible reason follows.\n", progName );
   perror ( progName );
   showFileNames();
-  cleanUpAndFail( 1 );
+  cleanUpAndFailAndExitApplication( 1 );
 }
 
 
@@ -941,7 +964,7 @@ static void mySignalCatcher ( IntNative n ) {
   fprintf ( stderr,
            "\n%s: Control-C or similar caught, quitting.\n",
            progName );
-  cleanUpAndFail(1);
+  cleanUpAndFailAndExitApplication(1);
 }
 
 
@@ -1020,12 +1043,12 @@ static void outOfMemory ( void ) {
            "\n%s: couldn't allocate enough memory\n",
            progName );
   showFileNames();
-  cleanUpAndFail(1);
+  cleanUpAndFailAndExitApplication(1);
 }
 
 
 /*---------------------------------------------*/
-static void configError ( void ) {
+static void printConfigErrorAndExit ( void ) {
   fprintf ( stderr,
            "bzip2: I'm not configured correctly for this platform!\n"
            "\tI require Int32, Int16 and Char to have sizes\n"
@@ -1056,7 +1079,35 @@ static void pad ( Char *s ) {
 }
 
 
-/*---------------------------------------------*/
+/** (KI generiert und manuell angepasst)
+ @brief Kopiert einen Dateinamen sicher.
+ 
+ Diese Funktion kopiert einen Dateinamen von einem Quellpuffer in einen Zielpuffer,
+ wobei eine Längenprüfung durchgeführt wird, um Pufferüberläufe zu verhindern.
+ 
+ @param to Ein Zeiger auf den Zielpuffer, in den der Dateiname kopiert wird.
+ @param from Ein Zeiger auf den Quellpuffer, der den zu kopierenden Dateinamen enthält.
+ 
+ @discussion
+ Die Funktion überprüft, ob die Länge des Quell-Dateinamens die maximale zulässige
+ Länge (`FILE_NAME_LEN - 10`) überschreitet. Wenn dies der Fall ist, wird eine
+ Fehlermeldung auf `stderr` ausgegeben und das Programm beendet. Andernfalls wird
+ der Dateiname mit `strncpy` in den Zielpuffer kopiert.
+ 
+ @note
+ `FILE_NAME_LEN` ist eine definierte Konstante, die die maximale Länge des
+ Dateinamens angibt. Die Funktion reserviert 10 Zeichen für eventuelle
+ zusätzliche Zeichen (z.B. eine Dateiendung).
+ 
+ @warning
+ Wenn der Dateiname zu lang ist, wird das Programm mit einem Fehlercode beendet.
+ 
+ @code
+ char sourceFileName[] = "my_very_long_file_name.txt";
+ char destinationFileName[256]; // Angenommen FILE_NAME_LEN ist 266
+ copyFileName(destinationFileName, sourceFileName);
+ @endcode
+ */
 static void copyFileName ( Char* to, Char* from ) {
   if ( strlen(from) > FILE_NAME_LEN-10 )  {
     fprintf (
@@ -1077,10 +1128,12 @@ static void copyFileName ( Char* to, Char* from ) {
 
 /*---------------------------------------------*/
 static Bool fileExists ( Char* name ) {
-   FILE *tmp   = fopen ( name, "rb" );
-   Bool exists = (tmp != NULL);
-   if (tmp != NULL) fclose ( tmp );
-   return exists;
+  FILE *tmp   = fopen ( name, "rb" );
+  Bool exists = (tmp != NULL);
+  if (tmp != NULL) {
+    fclose ( tmp );
+  }
+  return exists;
 }
 
 
@@ -1910,21 +1963,23 @@ static void addFlagsFromEnvVar ( Cell** argList, Char* varName ) {
 /*---------------------------------------------*/
 #define ISFLAG(s) (strcmp(aa->name, (s))==0)
 
+
 int main ( int argc, char *argv[] ) {
-  Int32  i, j;
+  Int32  i = 0;
+  Int32  j = 0;
   Char   *tmp;
   Cell   *argList;
   Cell   *aa;
   Bool   decode;
   
-  /*-- Be really really really paranoid :-) --*/
+  // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
   if (sizeof(Int32) != 4 || sizeof(UInt32) != 4  ||
       sizeof(Int16) != 2 || sizeof(UInt16) != 2  ||
       sizeof(Char)  != 1 || sizeof(UChar)  != 1) {
-    configError();
+    printConfigErrorAndExit();
   }
   
-  /*-- Initialise --*/
+  // Initialisiere die Variablen mit Standardwerten
   outputHandleJustInCase  = NULL;
   smallMode               = False;
   keepInputFiles          = False;
@@ -1939,8 +1994,6 @@ int main ( int argc, char *argv[] ) {
   workFactor              = 30;
   deleteOutputOnInterrupt = False;
   exitValue               = 0;
-  i = 0; /* avoid bogus warning from egcs-1.1.X */
-  j = 0; /* avoid bogus warning from egcs-1.1.X */
   
   /*-- Set up signal handlers for mem access errors --*/
   signal (SIGSEGV, mySIGSEGVorSIGBUScatcher);
