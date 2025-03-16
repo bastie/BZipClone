@@ -135,11 +135,11 @@ Int32   exitValue;
 #define SM_F2F           3
 
 /*-- operation modes --*/
-#define OM_Z             1
-#define OM_UNZ           2
-#define OM_TEST          3
+static const int OPERATION_MODE_COMPRESS = 1;
+static const int OPERATION_MODE_DECOMPRESS = 2;
+static const int OPERATION_MODE_TEST = 3;
 
-Int32   opMode;
+Int32   operationMode;
 Int32   srcMode;
 
 #define FILE_NAME_LEN 1034
@@ -154,7 +154,7 @@ FILE    *outputHandleJustInCase;
 Int32   workFactor;
 
 static void    panic                 ( const Char* ) NORETURN;
-static void    handleIoErrors               ( void )        NORETURN;
+static void    handleIoErrors        ( void )        NORETURN;
 static void    outOfMemory           ( void )        NORETURN;
 static void    configError           ( void )        NORETURN;
 static void    crcError              ( void )        NORETURN;
@@ -852,9 +852,7 @@ static void cleanUpAndFail ( Int32 ec ) {
   IntNative      retVal;
   struct MY_STAT statBuf;
   
-  if ( srcMode == SM_F2F
-      && opMode != OM_TEST
-      && deleteOutputOnInterrupt ) {
+  if ( srcMode == SM_F2F && operationMode != OPERATION_MODE_TEST && deleteOutputOnInterrupt ) {
     
     /* Check whether input file still exists.  Delete output file
      only if input exists to avoid loss of data.  Joerg Prante, 5
@@ -950,7 +948,7 @@ static void mySignalCatcher ( IntNative n ) {
 /*---------------------------------------------*/
 static void mySIGSEGVorSIGBUScatcher ( IntNative n ) {
   const char *msg;
-  if (opMode == OM_Z) {
+  if (operationMode == OPERATION_MODE_COMPRESS) {
     msg = ": Caught a SIGSEGV or SIGBUS whilst compressing.\n"
     "\n"
     "   Possible causes are (most likely first):\n"
@@ -1006,7 +1004,7 @@ static void mySIGSEGVorSIGBUScatcher ( IntNative n ) {
   /* Don't call cleanupAndFail. If we ended up here something went
    terribly wrong. Trying to clean up might fail spectacularly. */
   
-  if (opMode == OM_Z) {
+  if (operationMode == OPERATION_MODE_COMPRESS) {
     setExit(3);
   }
   else {
@@ -1912,7 +1910,7 @@ static void addFlagsFromEnvVar ( Cell** argList, Char* varName ) {
 /*---------------------------------------------*/
 #define ISFLAG(s) (strcmp(aa->name, (s))==0)
 
-IntNative main ( IntNative argc, Char *argv[] ) {
+int main ( int argc, char *argv[] ) {
   Int32  i, j;
   Char   *tmp;
   Cell   *argList;
@@ -1922,8 +1920,9 @@ IntNative main ( IntNative argc, Char *argv[] ) {
   /*-- Be really really really paranoid :-) --*/
   if (sizeof(Int32) != 4 || sizeof(UInt32) != 4  ||
       sizeof(Int16) != 2 || sizeof(UInt16) != 2  ||
-      sizeof(Char)  != 1 || sizeof(UChar)  != 1)
+      sizeof(Char)  != 1 || sizeof(UChar)  != 1) {
     configError();
+  }
   
   /*-- Initialise --*/
   outputHandleJustInCase  = NULL;
@@ -1940,7 +1939,8 @@ IntNative main ( IntNative argc, Char *argv[] ) {
   workFactor              = 30;
   deleteOutputOnInterrupt = False;
   exitValue               = 0;
-  i = j = 0; /* avoid bogus warning from egcs-1.1.X */
+  i = 0; /* avoid bogus warning from egcs-1.1.X */
+  j = 0; /* avoid bogus warning from egcs-1.1.X */
   
   /*-- Set up signal handlers for mem access errors --*/
   signal (SIGSEGV, mySIGSEGVorSIGBUScatcher);
@@ -1999,18 +1999,18 @@ IntNative main ( IntNative argc, Char *argv[] ) {
   
   /*-- Determine what to do (compress/uncompress/test/cat). --*/
   /*-- Note that subsequent flag handling may change this. --*/
-  opMode = OM_Z;
+  operationMode = OPERATION_MODE_COMPRESS;
   
   if ( (strstr ( progName, "unzip" ) != 0) ||
       (strstr ( progName, "UNZIP" ) != 0) ) {
-    opMode = OM_UNZ;
+    operationMode = OPERATION_MODE_DECOMPRESS;
   }
   
   if ( (strstr ( progName, "z2cat" ) != 0) ||
       (strstr ( progName, "Z2CAT" ) != 0) ||
       (strstr ( progName, "zcat" ) != 0)  ||
       (strstr ( progName, "ZCAT" ) != 0) )  {
-    opMode = OM_UNZ;
+    operationMode = OPERATION_MODE_DECOMPRESS;
     srcMode = (numFileNames == 0) ? SM_I2O : SM_F2O;
   }
   
@@ -2023,11 +2023,19 @@ IntNative main ( IntNative argc, Char *argv[] ) {
     if (aa->name[0] == '-' && aa->name[1] != '-') {
       for (j = 1; aa->name[j] != '\0'; j++) {
         switch (aa->name[j]) {
-          case 'c': srcMode          = SM_F2O; break;
-          case 'd': opMode           = OM_UNZ; break;
-          case 'z': opMode           = OM_Z; break;
+          case 'c':
+            srcMode          = SM_F2O;
+            break;
+          case 'd':
+            operationMode           = OPERATION_MODE_DECOMPRESS;
+            break;
+          case 'z':
+            operationMode           = OPERATION_MODE_COMPRESS;
+            break;
           case 'f': forceOverwrite   = True; break;
-          case 't': opMode           = OM_TEST; break;
+          case 't':
+            operationMode           = OPERATION_MODE_TEST;
+            break;
           case 'k': keepInputFiles   = True; break;
           case 's': smallMode        = True; break;
           case 'q': noisy            = False; break;
@@ -2065,12 +2073,12 @@ IntNative main ( IntNative argc, Char *argv[] ) {
       srcMode          = SM_F2O;
     }
     else if (ISFLAG("--decompress")) {
-      opMode           = OM_UNZ;
+      operationMode           = OPERATION_MODE_DECOMPRESS;
     }
     else
-        if (ISFLAG("--compress"))          opMode           = OM_Z;    else
+      if (ISFLAG("--compress"))          operationMode           = OPERATION_MODE_COMPRESS;    else
           if (ISFLAG("--force"))             forceOverwrite   = True;    else
-            if (ISFLAG("--test"))              opMode           = OM_TEST; else
+            if (ISFLAG("--test"))              operationMode           = OPERATION_MODE_TEST; else
               if (ISFLAG("--keep"))              keepInputFiles   = True;    else
                 if (ISFLAG("--small"))             smallMode        = True;    else
                   if (ISFLAG("--quiet"))             noisy            = False;   else
@@ -2094,11 +2102,11 @@ IntNative main ( IntNative argc, Char *argv[] ) {
   if (verbosity > 4) {
     verbosity = 4;
   }
-  if (opMode == OM_Z && smallMode && blockSize100k > 2) {
+  if (operationMode == OPERATION_MODE_COMPRESS && smallMode && blockSize100k > 2) {
     blockSize100k = 2;
   }
   
-  if (opMode == OM_TEST && srcMode == SM_F2O) {
+  if (operationMode == OPERATION_MODE_TEST && srcMode == SM_F2O) {
     fprintf ( stderr, "%s: -c and -t cannot be used together.\n",
              progName );
     exit ( 1 );
@@ -2108,7 +2116,7 @@ IntNative main ( IntNative argc, Char *argv[] ) {
     srcMode = SM_I2O;
   }
   
-  if (opMode != OM_Z) {
+  if (operationMode != OPERATION_MODE_COMPRESS) {
     blockSize100k = 0;
   }
   
@@ -2118,7 +2126,7 @@ IntNative main ( IntNative argc, Char *argv[] ) {
     signal (SIGHUP,  mySignalCatcher);
   }
   
-  if (opMode == OM_Z) {
+  if (operationMode == OPERATION_MODE_COMPRESS) {
     if (srcMode == SM_I2O) {
       compress ( NULL );
     }
@@ -2139,7 +2147,7 @@ IntNative main ( IntNative argc, Char *argv[] ) {
   }
   else
     
-    if (opMode == OM_UNZ) {
+    if (operationMode == OPERATION_MODE_DECOMPRESS) {
       unzFailsExist = False;
       if (srcMode == SM_I2O) {
         uncompress ( NULL );
