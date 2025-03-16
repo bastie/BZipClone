@@ -2,6 +2,8 @@
 build*
 build*.*
 test.sh
+BZipFromGitlab.xcodeproj/xcshareddata/
+BZipFromGitlab.xcodeproj/project.xcworkspace/
 
 # macOS
 # General
