@@ -76,56 +76,37 @@ MaybeUInt64 bytesIn  = 0;
 /*---------------------------------------------------*/
 
 /*---------------------------------------------*/
-static void readError ( void )
-{
-   fprintf ( stderr,
-             "%s: I/O error reading `%s', possible reason follows.\n",
-            progName, inFileName );
+static void readError ( void ) {
+   fprintf ( stderr, "%s: I/O error reading `%s', possible reason follows.\n", progName, inFileName );
    perror ( progName );
-   fprintf ( stderr, "%s: warning: output file(s) may be incomplete.\n",
-             progName );
+   fprintf ( stderr, "%s: warning: output file(s) may be incomplete.\n", progName );
    exit ( 1 );
 }
 
 
 /*---------------------------------------------*/
-static void writeError ( void )
-{
-   fprintf ( stderr,
-             "%s: I/O error reading `%s', possible reason follows.\n",
-            progName, inFileName );
+static void writeError ( void ) {
+   fprintf ( stderr, "%s: I/O error reading `%s', possible reason follows.\n", progName, inFileName );
    perror ( progName );
-   fprintf ( stderr, "%s: warning: output file(s) may be incomplete.\n",
-             progName );
+   fprintf ( stderr, "%s: warning: output file(s) may be incomplete.\n", progName );
    exit ( 1 );
 }
 
 
 /*---------------------------------------------*/
-static void mallocFail ( Int32 n )
-{
-   fprintf ( stderr,
-             "%s: malloc failed on request for %d bytes.\n",
-            progName, n );
-   fprintf ( stderr, "%s: warning: output file(s) may be incomplete.\n",
-             progName );
+static void mallocFail ( Int32 n ) {
+   fprintf ( stderr, "%s: malloc failed on request for %d bytes.\n", progName, n );
+   fprintf ( stderr, "%s: warning: output file(s) may be incomplete.\n", progName );
    exit ( 1 );
 }
 
 
 /*---------------------------------------------*/
-static void tooManyBlocks ( Int32 max_handled_blocks )
-{
-   fprintf ( stderr,
-             "%s: `%s' appears to contain more than %d blocks\n",
-            progName, inFileName, max_handled_blocks );
-   fprintf ( stderr,
-             "%s: and cannot be handled.  To fix, increase\n",
-             progName );
-   fprintf ( stderr,
-             "%s: BZ_MAX_HANDLED_BLOCKS in bzip2recover.c, and recompile.\n",
-             progName );
-   exit ( 1 );
+static void tooManyBlocks ( Int32 max_handled_blocks ) {
+  fprintf ( stderr, "%s: `%s' appears to contain more than %d blocks\n", progName, inFileName, max_handled_blocks );
+  fprintf ( stderr, "%s: and cannot be handled.  To fix, increase\n", progName );
+  fprintf ( stderr, "%s: BZ_MAX_HANDLED_BLOCKS in bzip2recover.c, and recompile.\n", progName );
+  exit ( 1 );
 }
 
 
@@ -134,19 +115,16 @@ static void tooManyBlocks ( Int32 max_handled_blocks )
 /*--- Bit stream I/O                              ---*/
 /*---------------------------------------------------*/
 
-typedef
-   struct {
-      FILE*  handle;
-      Int32  buffer;
-      Int32  buffLive;
-      Char   mode;
-   }
-   BitStream;
+typedef struct {
+  FILE*  handle;
+  Int32  buffer;
+  Int32  buffLive;
+  Char   mode;
+} BitStream;
 
 
 /*---------------------------------------------*/
-static BitStream* bsOpenReadStream ( FILE* stream )
-{
+static BitStream* bsOpenReadStream ( FILE* stream ) {
    BitStream *bs = malloc ( sizeof(BitStream) );
    if (bs == NULL) mallocFail ( sizeof(BitStream) );
    bs->handle = stream;
@@ -158,8 +136,7 @@ static BitStream* bsOpenReadStream ( FILE* stream )
 
 
 /*---------------------------------------------*/
-static BitStream* bsOpenWriteStream ( FILE* stream )
-{
+static BitStream* bsOpenWriteStream ( FILE* stream ) {
    BitStream *bs = malloc ( sizeof(BitStream) );
    if (bs == NULL) mallocFail ( sizeof(BitStream) );
    bs->handle = stream;
@@ -171,18 +148,18 @@ static BitStream* bsOpenWriteStream ( FILE* stream )
 
 
 /*---------------------------------------------*/
-static void bsPutBit ( BitStream* bs, Int32 bit )
-{
-   if (bs->buffLive == 8) {
-      Int32 retVal = putc ( (UChar) bs->buffer, bs->handle );
-      if (retVal == EOF) writeError();
-      bytesOut += 1;
-      bs->buffLive = 1;
-      bs->buffer = bit & 0x1;
-   } else {
-      bs->buffer = ( (bs->buffer << 1) | (bit & 0x1) );
-      bs->buffLive += 1;
-   };
+static void bsPutBit ( BitStream* bs, Int32 bit ) {
+  if (bs->buffLive == 8) {
+    Int32 retVal = putc ( (UChar) bs->buffer, bs->handle );
+    if (retVal == EOF) writeError();
+    bytesOut += 1;
+    bs->buffLive = 1;
+    bs->buffer = bit & 0x1;
+  }
+  else {
+    bs->buffer = ( (bs->buffer << 1) | (bit & 0x1) );
+    bs->buffLive += 1;
+  }
 }
 
 
@@ -191,19 +168,20 @@ static void bsPutBit ( BitStream* bs, Int32 bit )
    Returns 0 or 1, or 2 to indicate EOF.
 --*/
 static Int32 bsGetBit ( BitStream* bs ) {
-   if (bs->buffLive > 0) {
-      bs->buffLive -= 1;
-      return ( ((bs->buffer) >> (bs->buffLive)) & 0x1 );
-   } else {
-      Int32 retVal = getc ( bs->handle );
-      if ( retVal == EOF ) {
-         if (errno != 0) readError();
-         return 2;
-      }
-      bs->buffLive = 7;
-      bs->buffer = retVal;
-      return ( ((bs->buffer) >> 7) & 0x1 );
-   }
+  if (bs->buffLive > 0) {
+    bs->buffLive -= 1;
+    return ( ((bs->buffer) >> (bs->buffLive)) & 0x1 );
+  }
+  else {
+    Int32 retVal = getc ( bs->handle );
+    if ( retVal == EOF ) {
+      if (errno != 0) readError();
+      return 2;
+    }
+    bs->buffLive = 7;
+    bs->buffer = retVal;
+    return ( ((bs->buffer) >> 7) & 0x1 );
+  }
 }
 
 
@@ -215,7 +193,7 @@ static void bsClose ( BitStream* bs ) {
     while ( bs->buffLive < 8 ) {
       bs->buffLive += 1;
       bs->buffer <<= 1;
-    };
+    }
     retVal = putc ( (UChar) (bs->buffer), bs->handle );
     if (retVal == EOF){
       writeError();
@@ -235,21 +213,18 @@ static void bsClose ( BitStream* bs ) {
 
 
 /*---------------------------------------------*/
-static void bsPutUChar ( BitStream* bs, UChar c )
-{
-   Int32 i;
-   for (i = 7; i >= 0; i--)
-      bsPutBit ( bs, (((UInt32) c) >> i) & 0x1 );
+static void bsPutUChar ( BitStream* bs, UChar c ) {
+  for (int i = 7; i >= 0; i--) {
+    bsPutBit ( bs, (((UInt32) c) >> i) & 0x1 );
+  }
 }
 
 
 /*---------------------------------------------*/
-static void bsPutUInt32 ( BitStream* bs, UInt32 c )
-{
-   Int32 i;
-
-   for (i = 31; i >= 0; i--)
-      bsPutBit ( bs, (c >> i) & 0x1 );
+static void bsPutUInt32 ( BitStream* bs, UInt32 c ) {
+  for (int i = 31; i >= 0; i--) {
+    bsPutBit ( bs, (c >> i) & 0x1 );
+  }
 }
 
 
@@ -270,16 +245,18 @@ static Bool endsInBz2 ( Char* name ) {
  *
  * Opens a file, but refuses to overwrite an existing one.
  */
-static
-FILE* fopen_output_safely ( Char* name, const char* mode )
-{
-#  if BZ_UNIX
+static FILE* fopen_output_safely ( Char* name, const char* mode ) {
+#  if __APPLE__
    FILE*     fp;
    int       fh;
    fh = open(name, O_WRONLY|O_CREAT|O_EXCL, S_IWUSR|S_IRUSR);
-   if (fh == -1) return NULL;
+  if (fh == -1) {
+    return NULL;
+  }
    fp = fdopen(fh, mode);
-   if (fp == NULL) close(fh);
+  if (fp == NULL) {
+    close(fh);
+  }
    return fp;
 #  else
    return fopen(name, mode);
@@ -293,11 +270,7 @@ FILE* fopen_output_safely ( Char* name, const char* mode )
 /*---------------------------------------------------*/
 
 /* This logic isn't really right when it comes to Cygwin. */
-#ifdef _WIN32
-#  define  BZ_SPLIT_SYM  '\\'  /* path splitter on Windows platform */
-#else
 #  define  BZ_SPLIT_SYM  '/'   /* path splitter on Unix platform */
-#endif
 
 #define BLOCK_HEADER_HI  0x00003141UL
 #define BLOCK_HEADER_LO  0x59265359UL
@@ -316,223 +289,207 @@ MaybeUInt64 bEnd   [BZ_MAX_HANDLED_BLOCKS];
 MaybeUInt64 rbStart[BZ_MAX_HANDLED_BLOCKS];
 MaybeUInt64 rbEnd  [BZ_MAX_HANDLED_BLOCKS];
 
-Int32 main ( Int32 argc, Char** argv )
-{
-   FILE*       inFile;
-   FILE*       outFile;
-   BitStream*  bsIn, *bsWr;
-   Int32       b, wrBlock, currBlock, rbCtr;
-   MaybeUInt64 bitsRead;
-
-   UInt32      buffHi, buffLo, blockCRC;
-   Char*       p;
-
-   strncpy ( progName, argv[0], BZ_MAX_FILENAME-1);
-   progName[BZ_MAX_FILENAME-1]='\0';
-   inFileName[0] = outFileName[0] = 0;
-
-   fprintf ( stderr,
-             "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n" );
-
-   if (argc != 2) {
-      fprintf ( stderr, "%s: usage is `%s damaged_file_name'.\n",
-                        progName, progName );
-      switch (sizeof(MaybeUInt64)) {
-         case 8:
-            fprintf(stderr,
-                    "\trestrictions on size of recovered file: None\n");
-            break;
-         case 4:
-            fprintf(stderr,
-                    "\trestrictions on size of recovered file: 512 MB\n");
-            fprintf(stderr,
-                    "\tto circumvent, recompile with MaybeUInt64 as an\n"
-                    "\tunsigned 64-bit int.\n");
-            break;
-         default:
-            fprintf(stderr,
-                    "\tsizeof(MaybeUInt64) is not 4 or 8 -- "
-                    "configuration error.\n");
-            break;
+int main ( int argc, Char** argv ) {
+  FILE*       inFile;
+  FILE*       outFile;
+  BitStream*  bsIn, *bsWr;
+  Int32       b, wrBlock, currBlock, rbCtr;
+  MaybeUInt64 bitsRead;
+  
+  UInt32      buffHi, buffLo, blockCRC;
+  Char*       p;
+  
+  strncpy ( progName, argv[0], BZ_MAX_FILENAME-1);
+  progName[BZ_MAX_FILENAME-1]='\0';
+  inFileName[0] = outFileName[0] = 0;
+  
+  fprintf ( stderr, "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n" );
+  
+  if (argc != 2) {
+    fprintf ( stderr, "%s: usage is `%s damaged_file_name'.\n", progName, progName );
+    switch (sizeof(MaybeUInt64)) {
+      case 8:
+        fprintf(stderr, "\trestrictions on size of recovered file: None\n");
+        break;
+      case 4:
+        fprintf(stderr, "\trestrictions on size of recovered file: 512 MB\n");
+        fprintf(stderr, "\tto circumvent, recompile with MaybeUInt64 as an\n" "\tunsigned 64-bit int.\n");
+        break;
+      default:
+        fprintf(stderr, "\tsizeof(MaybeUInt64) is not 4 or 8 -- " "configuration error.\n");
+        break;
+    }
+    exit(1);
+  }
+  
+  if (strlen(argv[1]) >= BZ_MAX_FILENAME-20) {
+    fprintf ( stderr, "%s: supplied filename is suspiciously (>= %d chars) long.  Bye!\n", progName, (int)strlen(argv[1]) );
+    exit(1);
+  }
+  
+  strcpy ( inFileName, argv[1] );
+  
+  inFile = fopen ( inFileName, "rb" );
+  if (inFile == NULL) {
+    fprintf ( stderr, "%s: can't read `%s'\n", progName, inFileName );
+    exit(1);
+  }
+  
+  bsIn = bsOpenReadStream ( inFile );
+  fprintf ( stderr, "%s: searching for block boundaries ...\n", progName );
+  
+  bitsRead = 0;
+  buffHi = buffLo = 0;
+  currBlock = 0;
+  bStart[currBlock] = 0;
+  
+  rbCtr = 0;
+  
+  while (True) {
+    b = bsGetBit ( bsIn );
+    bitsRead += 1;
+    if (b == 2) {
+      if (bitsRead >= bStart[currBlock] && (bitsRead - bStart[currBlock]) >= 40) {
+        bEnd[currBlock] = bitsRead-1;
+        if (currBlock > 0) {
+          fprintf ( stderr, "   block %d runs from " "%llu" " to " "%llu" " (incomplete)\n", currBlock,  bStart[currBlock], bEnd[currBlock] );
+        }
       }
-      exit(1);
-   }
-
-   if (strlen(argv[1]) >= BZ_MAX_FILENAME-20) {
-      fprintf ( stderr,
-                "%s: supplied filename is suspiciously (>= %d chars) long.  Bye!\n",
-                progName, (int)strlen(argv[1]) );
-      exit(1);
-   }
-
-   strcpy ( inFileName, argv[1] );
-
-   inFile = fopen ( inFileName, "rb" );
-   if (inFile == NULL) {
-      fprintf ( stderr, "%s: can't read `%s'\n", progName, inFileName );
-      exit(1);
-   }
-
-   bsIn = bsOpenReadStream ( inFile );
-   fprintf ( stderr, "%s: searching for block boundaries ...\n", progName );
-
-   bitsRead = 0;
-   buffHi = buffLo = 0;
-   currBlock = 0;
-   bStart[currBlock] = 0;
-
-   rbCtr = 0;
-
-   while (True) {
-      b = bsGetBit ( bsIn );
-      bitsRead += 1;
-      if (b == 2) {
-         if (bitsRead >= bStart[currBlock] &&
-            (bitsRead - bStart[currBlock]) >= 40) {
-            bEnd[currBlock] = bitsRead-1;
-            if (currBlock > 0)
-              fprintf ( stderr, "   block %d runs from " "%llu"
-                                 " to " "%llu" " (incomplete)\n",
-                         currBlock,  bStart[currBlock], bEnd[currBlock] );
-         }
-         else {
-           currBlock -= 1;
-         }
-         break;
+      else {
+        currBlock -= 1;
       }
-      buffHi = (buffHi << 1) | (buffLo >> 31);
-      buffLo = (buffLo << 1) | (b & 1);
-      if ( ( (buffHi & 0x0000ffff) == BLOCK_HEADER_HI
-             && buffLo == BLOCK_HEADER_LO)
-           ||
-           ( (buffHi & 0x0000ffff) == BLOCK_ENDMARK_HI
-             && buffLo == BLOCK_ENDMARK_LO)
-         ) {
-         if (bitsRead > 49) {
-            bEnd[currBlock] = bitsRead-49;
-         } else {
-            bEnd[currBlock] = 0;
-         }
-         if (currBlock > 0 &&
-             (bEnd[currBlock] - bStart[currBlock]) >= 130) {
-           fprintf ( stderr, "   block %d runs from " "%llu"
-                    " to " "%llu" "\n",
-                      rbCtr+1,  bStart[currBlock], bEnd[currBlock] );
-            rbStart[rbCtr] = bStart[currBlock];
-            rbEnd[rbCtr] = bEnd[currBlock];
-            rbCtr += 1;
-         }
-         if (currBlock >= BZ_MAX_HANDLED_BLOCKS)
-            tooManyBlocks(BZ_MAX_HANDLED_BLOCKS);
-         currBlock += 1;
-
-         bStart[currBlock] = bitsRead;
+      break;
+    }
+    buffHi = (buffHi << 1) | (buffLo >> 31);
+    buffLo = (buffLo << 1) | (b & 1);
+    if ( ( (buffHi & 0x0000ffff) == BLOCK_HEADER_HI && buffLo == BLOCK_HEADER_LO) || ( (buffHi & 0x0000ffff) == BLOCK_ENDMARK_HI && buffLo == BLOCK_ENDMARK_LO) ) {
+      if (bitsRead > 49) {
+        bEnd[currBlock] = bitsRead-49;
       }
-   }
-
-   bsClose ( bsIn );
-
-   /*-- identified blocks run from 1 to rbCtr inclusive. --*/
-
-   if (rbCtr < 1) {
-      fprintf ( stderr,
-                "%s: sorry, I couldn't find any block boundaries.\n",
-                progName );
-      exit(1);
-   };
-
-   fprintf ( stderr, "%s: splitting into blocks\n", progName );
-
-   inFile = fopen ( inFileName, "rb" );
-   if (inFile == NULL) {
-      fprintf ( stderr, "%s: can't open `%s'\n", progName, inFileName );
-      exit(1);
-   }
-   bsIn = bsOpenReadStream ( inFile );
-
-   /*-- placate gcc's dataflow analyser --*/
-   blockCRC = 0; bsWr = 0;
-
-   bitsRead = 0;
-   outFile = NULL;
-   wrBlock = 0;
-   while (True) {
-      b = bsGetBit(bsIn);
-      if (b == 2) break;
-      buffHi = (buffHi << 1) | (buffLo >> 31);
-      buffLo = (buffLo << 1) | (b & 1);
-      if (bitsRead == 47+rbStart[wrBlock])
-         blockCRC = (buffHi << 16) | (buffLo >> 16);
-
-      if (outFile != NULL && bitsRead >= rbStart[wrBlock]
-                          && bitsRead <= rbEnd[wrBlock]) {
-         bsPutBit ( bsWr, b );
+      else {
+        bEnd[currBlock] = 0;
       }
-
-      bitsRead += 1;
-
-      if (bitsRead == rbEnd[wrBlock]+1) {
-         if (outFile != NULL) {
-            bsPutUChar ( bsWr, 0x17 ); bsPutUChar ( bsWr, 0x72 );
-            bsPutUChar ( bsWr, 0x45 ); bsPutUChar ( bsWr, 0x38 );
-            bsPutUChar ( bsWr, 0x50 ); bsPutUChar ( bsWr, 0x90 );
-            bsPutUInt32 ( bsWr, blockCRC );
-            bsClose ( bsWr );
-            outFile = NULL;
-         }
-         if (wrBlock >= rbCtr) break;
-         wrBlock += 1;
-      } else
+      if (currBlock > 0 && (bEnd[currBlock] - bStart[currBlock]) >= 130) {
+        fprintf ( stderr, "   block %d runs from " "%llu" " to " "%llu" "\n", rbCtr+1,  bStart[currBlock], bEnd[currBlock] );
+        rbStart[rbCtr] = bStart[currBlock];
+        rbEnd[rbCtr] = bEnd[currBlock];
+        rbCtr += 1;
+      }
+      if (currBlock >= BZ_MAX_HANDLED_BLOCKS) {
+        tooManyBlocks(BZ_MAX_HANDLED_BLOCKS);
+      }
+      currBlock += 1;
+      
+      bStart[currBlock] = bitsRead;
+    }
+  }
+  
+  bsClose ( bsIn );
+  
+  /*-- identified blocks run from 1 to rbCtr inclusive. --*/
+  
+  if (rbCtr < 1) {
+    fprintf ( stderr, "%s: sorry, I couldn't find any block boundaries.\n", progName );
+    exit(1);
+  };
+  
+  fprintf ( stderr, "%s: splitting into blocks\n", progName );
+  
+  inFile = fopen ( inFileName, "rb" );
+  if (inFile == NULL) {
+    fprintf ( stderr, "%s: can't open `%s'\n", progName, inFileName );
+    exit(1);
+  }
+  bsIn = bsOpenReadStream ( inFile );
+  
+  /*-- placate gcc's dataflow analyser --*/
+  blockCRC = 0; bsWr = 0;
+  
+  bitsRead = 0;
+  outFile = NULL;
+  wrBlock = 0;
+  while (True) {
+    b = bsGetBit(bsIn);
+    if (b == 2) break;
+    buffHi = (buffHi << 1) | (buffLo >> 31);
+    buffLo = (buffLo << 1) | (b & 1);
+    if (bitsRead == 47+rbStart[wrBlock]) {
+      blockCRC = (buffHi << 16) | (buffLo >> 16);
+    }
+    
+    if (outFile != NULL && bitsRead >= rbStart[wrBlock]
+        && bitsRead <= rbEnd[wrBlock]) {
+      bsPutBit ( bsWr, b );
+    }
+    
+    bitsRead += 1;
+    
+    if (bitsRead == rbEnd[wrBlock]+1) {
+      if (outFile != NULL) {
+        bsPutUChar ( bsWr, 0x17 ); bsPutUChar ( bsWr, 0x72 );
+        bsPutUChar ( bsWr, 0x45 ); bsPutUChar ( bsWr, 0x38 );
+        bsPutUChar ( bsWr, 0x50 ); bsPutUChar ( bsWr, 0x90 );
+        bsPutUInt32 ( bsWr, blockCRC );
+        bsClose ( bsWr );
+        outFile = NULL;
+      }
+      if (wrBlock >= rbCtr) {
+        break;
+      }
+      wrBlock += 1;
+    }
+    else {
       if (bitsRead == rbStart[wrBlock]) {
-         /* Create the output file name, correctly handling leading paths.
-            (31.10.2001 by Sergey E. Kusikov) */
-         Char* split;
-         Int32 ofs, k;
+        /* Create the output file name, correctly handling leading paths.
+         (31.10.2001 by Sergey E. Kusikov) */
+        Char* split;
+        Int32 ofs, k;
         for (k = 0; k < BZ_MAX_FILENAME; k++) {
           outFileName[k] = 0;
         }
-         strcpy (outFileName, inFileName);
-         split = strrchr (outFileName, BZ_SPLIT_SYM);
-         if (split == NULL) {
-            split = outFileName;
-         } else {
-            ++split;
-         }
-         /* Now split points to the start of the basename. */
-         ofs  = (int)(split - outFileName);
-         sprintf (split, "rec%5d", wrBlock+1);
+        strcpy (outFileName, inFileName);
+        split = strrchr (outFileName, BZ_SPLIT_SYM);
+        if (split == NULL) {
+          split = outFileName;
+        } else {
+          ++split;
+        }
+        /* Now split points to the start of the basename. */
+        ofs  = (int)(split - outFileName);
+        sprintf (split, "rec%5d", wrBlock+1);
         for (p = split; *p != 0; p++) {
           if (*p == ' ') {
             *p = '0';
           }
         }
-         strcat (outFileName, inFileName + ofs);
-
+        strcat (outFileName, inFileName + ofs);
+        
         if ( !endsInBz2(outFileName)) {
           strcat ( outFileName, ".bz2" );
         }
-
-         fprintf ( stderr, "   writing block %d to `%s' ...\n", wrBlock+1, outFileName );
-
-         outFile = fopen_output_safely ( outFileName, "wb" );
-         if (outFile == NULL) {
-            fprintf ( stderr, "%s: can't write `%s'\n",
-                      progName, outFileName );
-            exit(1);
-         }
-         bsWr = bsOpenWriteStream ( outFile );
-         bsPutUChar ( bsWr, BZ_HDR_B );
-         bsPutUChar ( bsWr, BZ_HDR_Z );
-         bsPutUChar ( bsWr, BZ_HDR_h );
-         bsPutUChar ( bsWr, BZ_HDR_0 + 9 );
-         bsPutUChar ( bsWr, 0x31 ); bsPutUChar ( bsWr, 0x41 );
-         bsPutUChar ( bsWr, 0x59 ); bsPutUChar ( bsWr, 0x26 );
-         bsPutUChar ( bsWr, 0x53 ); bsPutUChar ( bsWr, 0x59 );
+        
+        fprintf ( stderr, "   writing block %d to `%s' ...\n", wrBlock+1, outFileName );
+        
+        outFile = fopen_output_safely ( outFileName, "wb" );
+        if (outFile == NULL) {
+          fprintf ( stderr, "%s: can't write `%s'\n",
+                   progName, outFileName );
+          exit(1);
+        }
+        bsWr = bsOpenWriteStream ( outFile );
+        bsPutUChar ( bsWr, BZ_HDR_B );
+        bsPutUChar ( bsWr, BZ_HDR_Z );
+        bsPutUChar ( bsWr, BZ_HDR_h );
+        bsPutUChar ( bsWr, BZ_HDR_0 + 9 );
+        bsPutUChar ( bsWr, 0x31 ); bsPutUChar ( bsWr, 0x41 );
+        bsPutUChar ( bsWr, 0x59 ); bsPutUChar ( bsWr, 0x26 );
+        bsPutUChar ( bsWr, 0x53 ); bsPutUChar ( bsWr, 0x59 );
       }
-   }
-
-   fprintf ( stderr, "%s: finished\n", progName );
-   return 0;
+    }
+  }
+  
+  fprintf ( stderr, "%s: finished\n", progName );
+  return 0;
 }
 
 

@@ -147,10 +147,7 @@ static Bool isempty_RL ( EState* s ) {
 
 
 /*---------------------------------------------------*/
-int BZ2_bzCompressInit ( bz_stream* strm,
-                     int        blockSize100k,
-                     int        verbosity,
-                        int        workFactor ) {
+int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int verbosity, int workFactor ) {
   Int32   n;
   EState* s;
   
@@ -158,9 +155,7 @@ int BZ2_bzCompressInit ( bz_stream* strm,
     return BZ_CONFIG_ERROR;
   }
   
-  if (strm == NULL ||
-      blockSize100k < 1 || blockSize100k > 9 ||
-      workFactor < 0 || workFactor > 250)
+  if (strm == NULL || blockSize100k < 1 || blockSize100k > 9 || workFactor < 0 || workFactor > 250)
     return BZ_PARAM_ERROR;
   
   if (workFactor == 0) {
@@ -1126,17 +1121,15 @@ if (bzerror != NULL) {*bzerror = eee;}   \
 if (bzf != NULL) {bzf->lastErr = eee;}   \
 }
 
-typedef
-   struct {
-      FILE*     handle;
-      Char      buf[5000];
-      Int32     bufN;
-      Bool      writing;
-      bz_stream strm;
-      Int32     lastErr;
-      Bool      initialisedOk;
-   }
-   bzFile;
+typedef struct {
+  FILE*     handle;
+  Char      buf[5000];
+  Int32     bufN;
+  Bool      writing;
+  bz_stream strm;
+  Int32     lastErr;
+  Bool      initialisedOk;
+} bzFile;
 
 
 /*---------------------------------------------*/
@@ -1157,10 +1150,7 @@ BZFILE* BZ2_bzWriteOpen ( int* bzerror, FILE* f, int blockSize100k, int verbosit
   
   BZ_SETERR(BZ_OK);
   
-  if (f == NULL ||
-      (blockSize100k < 1 || blockSize100k > 9) ||
-      (workFactor < 0 || workFactor > 250) ||
-      (verbosity < 0 || verbosity > 4)) {
+  if (f == NULL || (blockSize100k < 1 || blockSize100k > 9) || (workFactor < 0 || workFactor > 250) || (verbosity < 0 || verbosity > 4)) {
     BZ_SETERR(BZ_PARAM_ERROR);
     return NULL;
   }
