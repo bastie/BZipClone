@@ -92,6 +92,37 @@ typedef int IntNative;
 /*--- Misc (file handling) data decls             ---*/
 /*---------------------------------------------------*/
 
+/**
+ @brief Steuert den Detaillierungsgrad der Programmausgabe.
+ 
+ Diese Variable legt fest, wie ausführlich das Programm während seiner Ausführung
+ Informationen ausgibt. Höhere Werte führen zu detaillierteren Ausgaben,
+ während niedrigere Werte die Ausgabe auf wesentliche Informationen beschränken.
+ 
+ @discussion
+ Die folgenden Werte sind zulässig:
+ 
+     0: Keine Ausgabe (nur kritische Fehler)
+ 
+     1: Grundlegende Informationen
+ 
+     2: Detaillierte Informationen
+ 
+     3: Sehr detaillierte Informationen (Debug-Modus)
+ 
+     4: Maximale Ausführlichkeit (umfassender Debug-Modus)
+ 
+ @note Höhere Werte führen zu einer umfangreicheren Ausgabe, die bei der
+ Fehlersuche und Überwachung des Programmablaufs hilfreich sein kann. Werte
+ höher als 4 werden als 4 interpretiert.
+ 
+ @code
+ // Beispielhafte Verwendung
+ if (verbosity >= 2) {
+   printf("Debug: Aktueller Wert von x ist %d\n", x);
+ }
+ @endcode
+ */
 Int32   verbosity;
 Bool    keepInputFiles, smallMode, deleteOutputOnInterrupt;
 Bool    forceOverwrite, testFailsExist, unzFailsExist, noisy;
@@ -430,7 +461,9 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     // führe die Fehlerbehandlung aus
     handleIoErrors();
   }
+  // empfehle dem Betriebssystem den Buffer für zStream zu leeren
   ret = fflush ( zStream );
+  // wenn ein Fehler aufgetreten ist
   if (ret == EOF) {
     // führe die Fehlerbehandlung aus
     handleIoErrors();

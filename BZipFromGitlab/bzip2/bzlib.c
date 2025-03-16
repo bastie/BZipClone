@@ -1203,6 +1203,7 @@ BZFILE* BZ2_bzWriteOpen ( int* bzerror, FILE* f, int blockSize100k, int verbosit
 
 
 /*---------------------------------------------------*/
+
 void BZ2_bzWrite ( int*    bzerror, BZFILE* b, void*   buf, int     len ) {
   Int32 n;
   unsigned long n2;
