@@ -64,8 +64,9 @@ reported the same issue.
 
 ## Compiling Bzip2 and libbz2
 
-Please see the [`COMPILING.md`](COMPILING.md) file for details.
-This includes instructions for building using Meson or CMake.
+```sh
+xcodebuild -alltargets
+```
 
 ## WARNING
 

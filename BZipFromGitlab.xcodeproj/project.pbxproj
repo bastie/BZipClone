@@ -94,7 +94,6 @@
 		486638722D819B6600FCE23E /* bzip2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bzip2; sourceTree = BUILT_PRODUCTS_DIR; };
 		4866387C2D819BBE00FCE23E /* AUTHORS */ = {isa = PBXFileReference; lastKnownFileType = text; path = AUTHORS; sourceTree = "<group>"; };
 		486638802D819BBE00FCE23E /* bzip2.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = bzip2.txt; sourceTree = "<group>"; };
-		486638862D819BBE00FCE23E /* COMPILING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMPILING.md; sourceTree = "<group>"; };
 		486638882D819BBE00FCE23E /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
 		486638902D819BBE00FCE23E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		486638AA2D81A2D100FCE23E /* bzip2recover */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bzip2recover; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -330,7 +329,6 @@
 			isa = PBXGroup;
 			children = (
 				4866387C2D819BBE00FCE23E /* AUTHORS */,
-				486638862D819BBE00FCE23E /* COMPILING.md */,
 				486638882D819BBE00FCE23E /* COPYING */,
 				486638802D819BBE00FCE23E /* bzip2.txt */,
 				486638902D819BBE00FCE23E /* README.md */,
