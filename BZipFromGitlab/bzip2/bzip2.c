@@ -1419,13 +1419,6 @@ static void compress ( Char *name ) {
       break;
   }
   
-  if ( srcMode != SourceMode_StandardInput2StandardOutput && False ) {
-    if (!quiet) {
-      fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inputFilename );
-    }
-    setExit(1);
-    return;
-  }
   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
     fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
     setExit(1);
@@ -1600,13 +1593,6 @@ static void uncompress ( Char *name ) {
   }
   
 zzz:
-  if ( srcMode != SourceMode_StandardInput2StandardOutput && False ) {
-    if (!quiet) {
-      fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inputFilename );
-    }
-    setExit(1);
-    return;
-  }
   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
     fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
     setExit(1);
@@ -1776,13 +1762,6 @@ static void testf ( Char *name ) {
     case SourceMode_File2StandardOutput: copyFileName ( inputFilename, name ); break;
   }
   
-  if ( srcMode != SourceMode_StandardInput2StandardOutput && False ) {
-    if (!quiet) {
-      fprintf ( stderr, "%s: There are no files matching `%s'.\n", progName, inputFilename );
-    }
-    setExit(1);
-    return;
-  }
   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
     fprintf ( stderr, "%s: Can't open input %s: %s.\n", progName, inputFilename, strerror(errno) );
     setExit(1);
