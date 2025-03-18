@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include "bzlib.h"
+#include "bzlib_private.h"
 
 #define ERROR_IF_EOF(i)       { if ((i) == EOF)  handleIoErrorsAndExitApplication(); }
 #define ERROR_IF_NOT_ZERO(i)  { if ((i) != 0)    handleIoErrorsAndExitApplication(); }
@@ -46,8 +47,6 @@
 #   include <sys/times.h>
 
 #   define PATH_SEP    '/'
-#   define MY_LSTAT    lstat
-#   define MY_STAT     stat
 #   define MY_S_ISREG  S_ISREG
 #   define MY_S_ISDIR  S_ISDIR
 
@@ -72,9 +71,6 @@ typedef int             Int32;
 typedef unsigned int    UInt32;
 typedef short           Int16;
 typedef unsigned short  UInt16;
-
-#define True  ((Bool)1)
-#define False ((Bool)0)
 
 /*--
   IntNative is your platform's `native' int size.
@@ -362,10 +358,65 @@ static Bool myfeof ( FILE* f ) {
 }
 
 
-/*---------------------------------------------*/
-void handleErrors (int* bzerror, BZFILE* bzf, int abandon, unsigned int* nbytes_in_lo32, unsigned int* nbytes_in_hi32, unsigned int* nbytes_out_lo32, unsigned int* nbytes_out_hi32, int bzerr);
+/**
+ @brief Behandelt Fehler und beendet die Anwendung.
+ 
+ Diese Funktion behandelt verschiedene Fehlerzustände, die während der bzip2-Komprimierung
+ auftreten können, schließt den bzip2-Stream und beendet die Anwendung entsprechend.
+ 
+ @param bzerror Ein Zeiger auf den Fehlercode der bzip2-Bibliothek.
+ @param bzf Ein Zeiger auf die bzip2-Datei-Struktur (BZFILE).
+ @param abandon Ein Flag, das angibt, ob der Stream abgebrochen werden soll (1) oder nicht (0).
+ @param nbytes_in_lo32 Ein Zeiger auf die unteren 32 Bit der Anzahl der Eingabe-Bytes.
+ @param nbytes_in_hi32 Ein Zeiger auf die oberen 32 Bit der Anzahl der Eingabe-Bytes.
+ @param nbytes_out_lo32 Ein Zeiger auf die unteren 32 Bit der Anzahl der Ausgabe-Bytes.
+ @param nbytes_out_hi32 Ein Zeiger auf die oberen 32 Bit der Anzahl der Ausgabe-Bytes.
+ @param bzerr Der spezifische bzip2-Fehlercode.
+ 
+ @discussion
+ Die Funktion schließt zunächst den bzip2-Stream mit `BZ2_bzWriteClose64`, wobei die
+ Anzahl der Eingabe- und Ausgabe-Bytes aktualisiert wird. Anschließend wird anhand
+ des `bzerr`-Wertes entschieden, welche Fehlerbehandlungsroutine aufgerufen wird:
+ 
+ - `BZ_CONFIG_ERROR`: Ruft `printConfigErrorAndExitApplication` auf.
+ 
+ - `BZ_MEM_ERROR`: Ruft `printOutOfMemoryAndExitApplication` auf.
+ 
+ - `BZ_IO_ERROR`: Ruft `handleIoErrorsAndExitApplication` auf.
+ 
+ - Alle anderen Fehler: Ruft `printUnexpectedProgramStateAndExitApplication` mit einer
+ allgemeinen Fehlermeldung auf.
+ 
+ Nach der Fehlerbehandlung wird `printUnexpectedProgramStateAndExitApplication` mit
+ einer Endmeldungen aufgerufen, die Funktion sollte jedoch nie diesen Punkt erreichen.
+ 
+ @note
+ Diese Funktion dient dazu, die Fehlerbehandlung in der bzip2-Komprimierungsanwendung
+ zu zentralisieren und einheitlich zu gestalten.
+ 
+ @warning
+ Diese Funktion beendet die Anwendung.
+ 
+ @code
+ // Beispielaufruf (angenommen, bzerr ist BZ_IO_ERROR)
+ int bzerror = BZ_OK;
+ BZFILE *bzf = ...; // Initialisierte BZFILE-Struktur
+ unsigned int nbytes_in_lo32 = 0, nbytes_in_hi32 = 0, nbytes_out_lo32 = 0, nbytes_out_hi32 = 0;
+ int bzerr = BZ_IO_ERROR;
+ 
+ handleErrorsAndExitApplication(&bzerror, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
+ // Anwendung wird beendet
+ @endcode
+ 
+ @see BZ2_bzWriteClose64
+ @see printConfigErrorAndExitApplication
+ @see printOutOfMemoryAndExitApplication
+ @see handleIoErrorsAndExitApplication
+ @see printUnexpectedProgramStateAndExitApplication
+ */
+void handleErrorsAndExitApplication (int* bzerror, BZFILE* bzf, int abandon, unsigned int* nbytes_in_lo32, unsigned int* nbytes_in_hi32, unsigned int* nbytes_out_lo32, unsigned int* nbytes_out_hi32, int bzerr);
 
-inline void handleErrors (int* bzerror, BZFILE* bzf, int abandon, unsigned int* nbytes_in_lo32, unsigned int* nbytes_in_hi32, unsigned int* nbytes_out_lo32, unsigned int* nbytes_out_hi32, int bzerr) {
+inline void handleErrorsAndExitApplication (int* bzerror, BZFILE* bzf, int abandon, unsigned int* nbytes_in_lo32, unsigned int* nbytes_in_hi32, unsigned int* nbytes_out_lo32, unsigned int* nbytes_out_hi32, int bzerr) {
   
   BZ2_bzWriteClose64 ( bzerror, bzf, 1,
                       nbytes_in_lo32, nbytes_in_hi32,
@@ -390,8 +441,7 @@ inline void handleErrors (int* bzerror, BZFILE* bzf, int abandon, unsigned int* 
 
 static void compressStream ( FILE *stream, FILE *zStream ) {
   BZFILE* bzf = NULL;
-  const int bufferSize = 5000;
-  UChar   buffer[bufferSize];
+  UChar   buffer[BUFFER_SIZE];
   unsigned long   countOfElementsInBuffer;
   UInt32  nbytes_in_lo32;
   UInt32  nbytes_in_hi32;
@@ -413,7 +463,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
   bzf = BZ2_bzWriteOpen ( &bzerr, zStream, blockSize100k, verbosity, workFactor );
   if (bzerr != BZ_OK) {
     // führe die Fehlerbehandlung aus
-    handleErrors (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
+    handleErrorsAndExitApplication (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
   }
   
   if (verbosity >= 2) {
@@ -427,7 +477,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
       break;
     }
     // Lese aus dem Eingabstrom `stream` maximal soviele Elemente wie in `bufferSize` definiert ist, wobei ein Elemen eine Anzahl von Bytes entspricht die `sizeof(UChar)` zurückgibt und speicher diese im Puffer `buffer`. Die Anzahl der gelesenen Zeichen speichere dabei in `countOfElementsInBuffer`.
-    countOfElementsInBuffer = fread ( buffer, sizeof(UChar), bufferSize, stream );
+    countOfElementsInBuffer = fread ( buffer, sizeof(UChar), BUFFER_SIZE, stream );
     // prüfe, ob beim lesen ein Fehler aufgetreten ist
     if (ferror(stream)) {
       // führe die Fehlerbehandlung aus
@@ -440,14 +490,14 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     }
     if (bzerr != BZ_OK) {
       // führe die Fehlerbehandlung aus
-      handleErrors (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
+      handleErrorsAndExitApplication (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
     }
   }
   
   BZ2_bzWriteClose64 ( &bzerr, bzf, 0, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32 );
   if (bzerr != BZ_OK) {
     // führe die Fehlerbehandlung aus
-    handleErrors (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
+    handleErrorsAndExitApplication (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
   }
   
   if (ferror(zStream)) {
@@ -857,7 +907,7 @@ static void showFileNames ( void ) {
 /*---------------------------------------------*/
 static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
   IntNative      retVal;
-  struct MY_STAT statBuf;
+  struct stat statBuf;
   
   if ( srcMode == SourceMode_File2File && operationMode != OPERATION_MODE_TEST && deleteOutputOnInterrupt ) {
     
@@ -866,7 +916,7 @@ static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
      January 2002.  (JRS 06-Jan-2002: other changes in 1.0.2 mean
      this is less likely to happen.  But to be ultra-paranoid, we
      do the check anyway.)  */
-    retVal = MY_STAT ( inputFilename, &statBuf );
+    retVal = stat ( inputFilename, &statBuf );
     if (retVal == 0) {
       if (!quiet) {
         fprintf ( stderr, "%s: Deleting output file %s, if it exists.\n", progName, outputFilename );
@@ -1040,21 +1090,58 @@ static void printConfigErrorAndExitApplication ( void ) {
 
 
 /*---------------------------------------------------*/
-/*--- The main driver machinery                   ---*/
+/*--- Die Hauptsteuerungsmechanik                 ---*/
 /*---------------------------------------------------*/
 
-/* All rather crufty.  The main problem is that input files
-   are stat()d multiple times before use.  This should be
-   cleaned up.
-*/
+/* Alles ziemlich schlampig. Das Hauptproblem ist, dass
+ Eingabedateien vor der Verwendung mehrmals mit stat()
+ abgefragt werden. Das sollte bereinigt werden.
+ */
 
-/*---------------------------------------------*/
+/** (KI generierte Dokumentation war stark fehlerhaft!)
+ @brief Gibt Leerzeichen auf `stderr`, um eine Zeichenkette mit eine bestimmte Länge auszugeben.
+ 
+ Diese Funktion gibt Leerzeichen aus, um zusammen mit der Zeichenkette auf die Länge
+ `longestFilename` zu kommen. Die Funktion gibt nichts zurück, sondern schreibt
+ die Leerzeichen direkt auf `stderr`.
+ 
+ @param s Ein Zeiger auf die Zeichenkette.
+ 
+ @discussion
+ Die Funktion überprüft zunächst, ob die Länge der Zeichenkette `s` bereits größer oder
+ gleich `longestFilename` ist. Wenn dies der Fall ist, wird die Funktion sofort
+ beendet. Andernfalls gibt die Funktion so viele Leerzeichen aus, dass,
+ zusammen mit der übergebenen Zeichenkette, die Gesamtlänge
+ `longestFilename` erreicht wird.
+ 
+ @note
+ `longestFilename` ist eine globale Variable, die die maximale Länge des Dateinamens
+ speichert.
+ 
+ @warning
+ Die Leerzeichen werden direkt auf `stderr` geschrieben.
+ 
+ @code
+ char filename[] = "kurz.txt";
+ longestFilename = 20;
+ pad(filename);
+ @endcode
+ */
 static void pad ( Char *s ) {
-  if ( (Int32)strlen(s) >= longestFilename ) {
+  // wenn die maximale Länge des Dateinamen kleiner als die Länge der übergebenen Zeichenkette ist
+  if ( longestFilename < strlen(s)) {
+    // beende die Funktion
     return;
   }
-  for (int i = 1; i <= longestFilename - (Int32)strlen(s); i++) {
-    fprintf ( stderr, " " );
+  // wenn die maximale Länge des Dateinamen nicht kleiner als die Länge der übergebene Zeichenkette ist
+  else {
+    // ermittle den Unterschied zwischen der Länge der übergebene Zeichenkette und der maximalen Länge eines Dateinamen
+    const Int32 rangeBetweenLengthOfLongestFilenameAndParameter = longestFilename - (Int32)strlen(s);
+    // Führe für so oft wie der Unterschied zwischen der Länge der übergebene Zeichenkette und der maximalen Länge eines Dateinamen ist folgende Anweisungen durch:
+    for (int i = 1; i <= rangeBetweenLengthOfLongestFilenameAndParameter; i++) {
+      // Gebe auf dem Standard-Fehlerdatenstrom ein Leerzeichen aus
+      fprintf ( stderr, " " );
+    }
   }
 }
 
@@ -1183,16 +1270,24 @@ static FILE* fopen_output_safely ( Char* name, const char* mode ) {
 --*/
 static Bool notAStandardFile ( Char* name ) {
   IntNative      i;
-  struct MY_STAT statBuf;
+  struct stat statBuf;
   
-  i = MY_LSTAT ( name, &statBuf );
+  i = lstat ( name, &statBuf );
   if (i != 0) {
     return True;
   }
+  // Prüfe, ob die Datei ein reguläres Dateisystemobjekt ist, im Gegensatz zu Verzeichnissen, symbolischen Links, Gerätedateien oder anderen speziellen Dateitypen.
+  // S_ISREG gibt einen Wert ungleich 0 (wahr) zurück, wenn die Datei ein reguläres Dateisystemobjekt ist, andernfalls 0 (falsch).
+  // Wenn es eine reguläre Datei ist
   if (MY_S_ISREG(statBuf.st_mode)) {
+    // gebe Falsch zurück
     return False;
   }
-  return True;
+  // Wenn es keine reguläre Datei ist
+  else {
+    // Gebe Wahr zurück
+    return True;
+  }
 }
 
 
@@ -1202,9 +1297,9 @@ static Bool notAStandardFile ( Char* name ) {
 --*/
 static Int32 countHardLinks ( Char* name ) {
   IntNative      i;
-  struct MY_STAT statBuf;
+  struct stat statBuf;
   
-  i = MY_LSTAT ( name, &statBuf );
+  i = lstat ( name, &statBuf );
   if (i != 0) {
     return 0;
   }
@@ -1235,12 +1330,12 @@ static Int32 countHardLinks ( Char* name ) {
    robustly to arbitrary Unix-like platforms (or even works robustly
    on this one, RedHat 7.2) is unknown to me.  Nevertheless ...
 */
-static struct MY_STAT fileMetaInfo;
+static struct stat fileMetaInfo;
 
 static void saveInputFileMetaInfo ( Char *srcName ) {
    IntNative retVal;
    /* Note use of stat here, not lstat. */
-   retVal = MY_STAT( srcName, &fileMetaInfo );
+   retVal = stat( srcName, &fileMetaInfo );
    ERROR_IF_NOT_ZERO ( retVal );
 }
 
@@ -1270,8 +1365,8 @@ static void applySavedFileAttrToOutputFile ( IntNative fd ) {
 /*---------------------------------------------*/
 static const int BZ_N_SUFFIX_PAIRS = 4;
 
-const Char* zSuffix[BZ_N_SUFFIX_PAIRS] = { ".bz2", ".bz", ".tbz2", ".tbz" };
-const Char* unzSuffix[BZ_N_SUFFIX_PAIRS] = { "", "", ".tar", ".tar" };
+const Char* compressedFilenameSuffix[BZ_N_SUFFIX_PAIRS] = { ".bz2", ".bz", ".tbz2", ".tbz" };
+const Char* uncompressedFilenameSuffix[BZ_N_SUFFIX_PAIRS] = { "", "", ".tar", ".tar" };
 
 static Bool hasSuffix ( Char* s, const Char* suffix ) {
   size_t ns = strlen(s);
@@ -1300,7 +1395,7 @@ static void compress ( Char *name ) {
   FILE  *inStr;
   FILE  *outStr;
   Int32 n, i;
-  struct MY_STAT statBuf;
+  struct stat statBuf;
   
   deleteOutputOnInterrupt = False;
   
@@ -1337,16 +1432,16 @@ static void compress ( Char *name ) {
     return;
   }
   for (i = 0; i < BZ_N_SUFFIX_PAIRS; i++) {
-    if (hasSuffix(inputFilename, zSuffix[i])) {
+    if (hasSuffix(inputFilename, compressedFilenameSuffix[i])) {
       if (!quiet) {
-        fprintf ( stderr, "%s: Input file %s already has %s suffix.\n", progName, inputFilename, zSuffix[i] );
+        fprintf ( stderr, "%s: Input file %s already has %s suffix.\n", progName, inputFilename, compressedFilenameSuffix[i] );
       }
       setExit(1);
       return;
     }
   }
   if ( srcMode == SourceMode_File2File || srcMode == SourceMode_File2StandardOutput ) {
-    MY_STAT(inputFilename, &statBuf);
+    stat(inputFilename, &statBuf);
     if ( MY_S_ISDIR(statBuf.st_mode) ) {
       fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
       setExit(1);
@@ -1473,7 +1568,7 @@ static void uncompress ( Char *name ) {
   Int32 n, i;
   Bool  magicNumberOK;
   Bool  cantGuess;
-  struct MY_STAT statBuf;
+  struct stat statBuf;
   
   deleteOutputOnInterrupt = False;
   
@@ -1491,7 +1586,7 @@ static void uncompress ( Char *name ) {
       copyFileName ( inputFilename, name );
       copyFileName ( outputFilename, name );
       for (i = 0; i < BZ_N_SUFFIX_PAIRS; i++) {
-        if (mapSuffix(outputFilename,zSuffix[i],unzSuffix[i])) {
+        if (mapSuffix(outputFilename,compressedFilenameSuffix[i],uncompressedFilenameSuffix[i])) {
           goto zzz;
         }
       }
@@ -1518,7 +1613,7 @@ zzz:
     return;
   }
   if ( srcMode == SourceMode_File2File || srcMode == SourceMode_File2StandardOutput ) {
-    MY_STAT(inputFilename, &statBuf);
+    stat(inputFilename, &statBuf);
     if ( MY_S_ISDIR(statBuf.st_mode) ) {
       fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
       setExit(1);
@@ -1667,7 +1762,7 @@ zzz:
 static void testf ( Char *name ) {
   FILE *inStr;
   Bool allOK;
-  struct MY_STAT statBuf;
+  struct stat statBuf;
   
   deleteOutputOnInterrupt = False;
   
@@ -1694,7 +1789,7 @@ static void testf ( Char *name ) {
     return;
   }
   if ( srcMode != SourceMode_StandardInput2StandardOutput ) {
-    MY_STAT(inputFilename, &statBuf);
+    stat(inputFilename, &statBuf);
     if ( MY_S_ISDIR(statBuf.st_mode) ) {
       fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
       setExit(1);

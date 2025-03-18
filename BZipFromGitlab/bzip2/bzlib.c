@@ -466,25 +466,21 @@ preswitch:
       return BZ_SEQUENCE_ERROR;
       
     case BZ_M_RUNNING:
-      if (action == BZ_RUN) {
-        progress = handle_compress ( strm );
-        return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
-      }
-      else
-        if (action == BZ_FLUSH) {
+      switch (action) {
+        case BZ_RUN :
+          progress = handle_compress ( strm );
+          return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
+        case BZ_FLUSH :
           s->avail_in_expect = strm->avail_in;
           s->mode = BZ_M_FLUSHING;
           goto preswitch;
-        }
-        else
-          if (action == BZ_FINISH) {
-            s->avail_in_expect = strm->avail_in;
-            s->mode = BZ_M_FINISHING;
-            goto preswitch;
-          }
-          else {
-            return BZ_PARAM_ERROR;
-          }
+        case BZ_FINISH :
+          s->avail_in_expect = strm->avail_in;
+          s->mode = BZ_M_FINISHING;
+          goto preswitch;
+        default :
+          return BZ_PARAM_ERROR;
+      }
       
     case BZ_M_FLUSHING:
       if (action != BZ_FLUSH) {
@@ -525,31 +521,49 @@ preswitch:
 
 /*---------------------------------------------------*/
 int BZ2_bzCompressEnd  ( bz_stream *strm ) {
+  // Führe Vorprüfungen aus:
   EState* s;
-  if (strm == NULL) {
-    return BZ_PARAM_ERROR;
-  }
-  s = strm->state;
-  if (s == NULL) {
-    return BZ_PARAM_ERROR;
-  }
-  if (s->strm != strm) {
-    return BZ_PARAM_ERROR;
+  {
+    // Wenn der übergebene Datenstrom NULL ist
+    if (strm == NULL) {
+      // gebe zurück, dass die Funktion mit einem falschen Parameter aufgerufen wurde
+      return BZ_PARAM_ERROR;
+    }
+    // Hole einen Zeiger auf die Status in der Struktur für den Datenstrom
+    s = strm->state;
+    // Wenn der Status NULL ist und somit im Datenstrom nicht gesetzt ist
+    if (s == NULL) {
+      // gebe zurück, dass die Funktion mit einem falschen Parameter aufgerufen wurde
+      return BZ_PARAM_ERROR;
+    }
+    // Wenn der Status auf einen anderen Eingabestrom verweist, denn der Eingabestrom auf den Status
+    if (s->strm != strm) {
+      // gebe zurück, dass die Funktion mit einem falschen Parameter aufgerufen wurde
+      return BZ_PARAM_ERROR;
+    }
   }
   
+  // Wenn das Array Nr. 1 nicht NULL ist
   if (s->arr1 != NULL) {
+    // Rufe die Funktion BZFree auf und übergebe das Array Nr. 1
     BZFREE(s->arr1);
   }
+  // Wenn das Array Nr. 2 nicht NULL ist
   if (s->arr2 != NULL) {
+    // Rufe die Funktion BZFree auf und übergebe das Array Nr. 2
     BZFREE(s->arr2);
   }
+  // Wenn ftab nicht NULL ist
   if (s->ftab != NULL) {
+    // Rufe die Funktion BZFree auf und übergebe ftab
     BZFREE(s->ftab);
   }
+  // Rufe die Funktion BZFree auf und übergebe den Status des Datenstroms
   BZFREE(strm->state);
-  
+  // setze den Status des Datenstrom auf NULL
   strm->state = NULL;
   
+  // Gebe zurück, dass die Funktion erfolgreich beendet wurde
   return BZ_OK;
 }
 
@@ -1123,7 +1137,7 @@ if (bzf != NULL) {bzf->lastErr = eee;}   \
 
 typedef struct {
   FILE*     handle;
-  Char      buf[5000];
+  Char      buf[BUFFER_SIZE];
   Int32     bufN;
   Bool      writing;
   bz_stream strm;
@@ -1223,7 +1237,7 @@ void BZ2_bzWrite ( int*    bzerror, BZFILE* b, void*   buf, int     len ) {
   bzf->strm.next_in  = buf;
   
   while (True) {
-    bzf->strm.avail_out = 5000;
+    bzf->strm.avail_out = BUFFER_SIZE;
     bzf->strm.next_out = bzf->buf;
     ret = BZ2_bzCompress ( &(bzf->strm), BZ_RUN );
     if (ret != BZ_RUN_OK) {
@@ -1231,8 +1245,8 @@ void BZ2_bzWrite ( int*    bzerror, BZFILE* b, void*   buf, int     len ) {
       return;
     }
     
-    if (bzf->strm.avail_out < 5000) {
-      n = 5000 - bzf->strm.avail_out;
+    if (bzf->strm.avail_out < BUFFER_SIZE) {
+      n = BUFFER_SIZE - bzf->strm.avail_out;
       n2 = fwrite ( (void*)(bzf->buf), sizeof(UChar), n, bzf->handle );
       if (n != n2 || ferror(bzf->handle)) {
         BZ_SETERR(BZ_IO_ERROR);
@@ -1288,7 +1302,7 @@ void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nb
 
    if ((!abandon) && bzf->lastErr == BZ_OK) {
       while (True) {
-         bzf->strm.avail_out = 5000;
+         bzf->strm.avail_out = BUFFER_SIZE;
          bzf->strm.next_out = bzf->buf;
          ret = BZ2_bzCompress ( &(bzf->strm), BZ_FINISH );
         if (ret != BZ_FINISH_OK && ret != BZ_STREAM_END) {
@@ -1296,8 +1310,8 @@ void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nb
           return;
         }
 
-         if (bzf->strm.avail_out < 5000) {
-            n = 5000 - bzf->strm.avail_out;
+         if (bzf->strm.avail_out < BUFFER_SIZE) {
+            n = BUFFER_SIZE - bzf->strm.avail_out;
             n2 = fwrite ( (void*)(bzf->buf), sizeof(UChar), n, bzf->handle );
            if (n != n2 || ferror(bzf->handle)) {
              BZ_SETERR(BZ_IO_ERROR);
@@ -1349,7 +1363,7 @@ BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int verbosity, int small, void* 
       (small != 0 && small != 1) ||
       (verbosity < 0 || verbosity > 4) ||
       (unused == NULL && nUnused != 0) ||
-      (unused != NULL && (nUnused < 0 || nUnused > 5000))) {
+      (unused != NULL && (nUnused < 0 || nUnused > BUFFER_SIZE))) {
     BZ_SETERR(BZ_PARAM_ERROR);
     return NULL;
   }
@@ -1452,7 +1466,7 @@ int BZ2_bzRead ( int* bzerror, BZFILE* b, void* buf, int len ) {
     };
     
     if (bzf->strm.avail_in == 0 && !myfeof(bzf->handle)) {
-      n = (unsigned int) fread ( bzf->buf, sizeof(UChar), 5000, bzf->handle );
+      n = (unsigned int) fread ( bzf->buf, sizeof(UChar), BUFFER_SIZE, bzf->handle );
       if (ferror(bzf->handle)) {
         BZ_SETERR(BZ_IO_ERROR);
         return 0;
@@ -1667,7 +1681,7 @@ static BZFILE * bzopen_or_bzdopen
                  int open_mode)      /* bzopen: 0, bzdopen:1 */
 {
   int    bzerr;
-  char   unused[5000];
+  char   unused[BUFFER_SIZE];
   int    blockSize100k = 9;
   int    writing       = 0;
   char   mode2[10]     = "";

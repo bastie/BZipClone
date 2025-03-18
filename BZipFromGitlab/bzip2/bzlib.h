@@ -26,9 +26,9 @@
 extern "C" {
 #endif
 
-#define BZ_RUN               0
-#define BZ_FLUSH             1
-#define BZ_FINISH            2
+  static const int BZ_RUN = 0;
+  static const int BZ_FLUSH = 1;
+  static const int BZ_FINISH = 2;
 
 #define BZ_OK                0
 #define BZ_RUN_OK            1
@@ -45,8 +45,7 @@ extern "C" {
 #define BZ_OUTBUFF_FULL      (-8)
 #define BZ_CONFIG_ERROR      (-9)
 
-typedef
-   struct {
+typedef struct {
       char *next_in;
       unsigned int avail_in;
       unsigned int total_in_lo32;
@@ -62,8 +61,7 @@ typedef
       void *(*bzalloc)(void *,int,int);
       void (*bzfree)(void *,void *);
       void *opaque;
-   }
-   bz_stream;
+} bz_stream;
 
 
 #ifndef BZ_NO_STDIO
@@ -106,8 +104,6 @@ typedef
 
 
 /*-- High(er) level library functions --*/
-
-#ifndef BZ_NO_STDIO
 
 typedef void BZFILE;
 
@@ -171,7 +167,6 @@ typedef void BZFILE;
       unsigned int* nbytes_out_lo32,
       unsigned int* nbytes_out_hi32
    );
-#endif
 
 
 /*-- Utility functions --*/
@@ -209,7 +204,6 @@ typedef void BZFILE;
       void
    );
 
-#ifndef BZ_NO_STDIO
   extern BZFILE * BZ2_bzopen (
       const char *path,
       const char *mode
@@ -244,7 +238,6 @@ typedef void BZFILE;
       BZFILE *b,
       int    *errnum
    );
-#endif
 
 #ifdef __cplusplus
 }

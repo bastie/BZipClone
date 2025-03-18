@@ -20,10 +20,10 @@
 /* This program is a complete hack and should be rewritten properly.
    It isn't very complicated. */
 
-#   include <fcntl.h>
-#   include <sys/types.h>
-#   include <sys/stat.h>
-#   include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <stdio.h>
 #include <errno.h>
@@ -51,7 +51,7 @@ typedef  unsigned char  Bool;
 #define False   ((Bool)0)
 
 
-#define BZ_MAX_FILENAME 2000
+static const int BZ_MAX_FILENAME = 2000;
 
 Char inFileName[BZ_MAX_FILENAME];
 Char outFileName[BZ_MAX_FILENAME];

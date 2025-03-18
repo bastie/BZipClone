@@ -40,8 +40,10 @@ typedef unsigned int    UInt32;
 typedef short           Int16;
 typedef unsigned short  UInt16;
 
-#define True  ((Bool)1)
-#define False ((Bool)0)
+static const unsigned char True =  ((Bool)1);
+static const unsigned char False = ((Bool)0);
+static const int BUFFER_SIZE = 5000;
+
 
 #ifndef BZ_NO_STDIO
 
