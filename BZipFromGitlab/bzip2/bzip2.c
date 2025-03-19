@@ -2145,31 +2145,6 @@ int main ( int argc, char *argv[] ) {
   }
   
   
-  // Ermittle was getan werden soll anhand des Programmnamens. Dies kann durch ein Argument überschrieben werden.
-  // Setze den Standardwert für die zu erledigende Aufgabe auf Komprimierung
-  operationMode = OPERATION_MODE_COMPRESS;
-  
-  // Wenn das Programm "unzip" oder "UNZIP" heißt...
-  if ( (strstr ( progName, "unzip" ) != 0) ||
-      (strstr ( progName, "UNZIP" ) != 0) ) {
-    // setze die zu erledigende Aufgabe auf Dekomprimierung
-    operationMode = OPERATION_MODE_DECOMPRESS;
-  }
-  // sonst, alsp wenn es Programm nicht "unzip" oder "UNZIP" heißt
-  else {
-    // Wenn das Programm "z2cat", "Z2CAT", "zcat" oder "ZCAT" heißt
-    if ( (strstr ( progName, "z2cat" ) != 0) ||
-        (strstr ( progName, "Z2CAT" ) != 0) ||
-        (strstr ( progName, "zcat" ) != 0)  ||
-        (strstr ( progName, "ZCAT" ) != 0) )  {
-      // setze die zu erledigende Aufgabe auf Dekomprimierung
-      operationMode = OPERATION_MODE_DECOMPRESS;
-      // wenn die Anzahl der Dateien 0 ist, setze den SourceMode auf `SourceMode_StandardInput2StandardOutput` sonst auf `SourceMode_File2StandardOutput`
-      srcMode = (numFileNames == 0) ? SourceMode_StandardInput2StandardOutput : SourceMode_File2StandardOutput;
-    }
-  }
-  
-  
   /*-- Look at the arguments. --*/
   for (argument = argumentList; argument != NULL; argument = argument->next) {
     if (ISFLAG(argument,"--")) {
