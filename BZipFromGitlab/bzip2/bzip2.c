@@ -46,7 +46,6 @@
 #   include <sys/stat.h>
 #   include <sys/times.h>
 
-#   define PATH_SEP    '/'
 #   define MY_S_ISREG  S_ISREG
 #   define MY_S_ISDIR  S_ISDIR
 
@@ -140,7 +139,9 @@ Int32   longestFilename;
 Char    inputFilename [FILE_NAME_LEN];
 Char    outputFilename[FILE_NAME_LEN];
 Char    tmporaryFilename[FILE_NAME_LEN];
-Char    *progName;
+// Deklariere eine Variable für einen Zeiger auf Zeichenkette, die den Programmnamen ohne Pfadangaben enthalten soll
+Char*   progName;
+// Deklariere ein Array von Zeichen in der Länge `FILE_NAME_LEN`
 Char    progNameReally[FILE_NAME_LEN];
 FILE    *outputHandleJustInCase;
 Int32   workFactor;
@@ -1177,12 +1178,7 @@ static void pad ( Char *s ) {
  */
 static void copyFileName ( Char* to, Char* from ) {
   if ( strlen(from) > FILE_NAME_LEN-10 )  {
-    fprintf ( stderr,
-              "bzip2: file name\n`%s'\n"
-              "is suspiciously (more than %d chars) long.\n"
-              "Try using a reasonable file name instead.  Sorry! :-)\n",
-              from, FILE_NAME_LEN-10
-             );
+    fprintf ( stderr, "bzip2: file name\n`%s'\n" "is suspiciously (more than %d chars) long.\n" "Try using a reasonable file name instead.  Sorry! :-)\n", from, FILE_NAME_LEN-10 );
     setExit(1);
     exit(exitValue);
   }
@@ -1821,7 +1817,17 @@ static void testf ( Char *name ) {
 }
 
 
-/*---------------------------------------------*/
+/** (KI generiert und angepasst)
+ *
+ * @brief Gibt die Lizenzinformationen auf der Standardausgabe aus.
+ *
+ * Diese Funktion gibt die Versionsnummer, das Copyright und die Lizenzbedingungen
+ * auf der Standardausgabe aus. Die Ausgabe informiert den Benutzer
+ * darüber, dass die Anwendung freie Software ist und unter den Bedingungen der im
+ * LICENSE-Datei definierten Lizenz vertrieben wird.
+ *
+ * @note Diese Funktion gibt keine Werte zurück.
+ */
 static void license ( void ) {
    fprintf ( stdout,
     "bzip2, a block-sorting file compressor.  "
@@ -1843,7 +1849,21 @@ static void license ( void ) {
 }
 
 
-/*---------------------------------------------*/
+/**
+ * @brief Gibt die Nutzungsinformationen für das Programm auf der Standardfehlerausgabe aus.
+ *
+ * Diese Funktion zeigt eine Hilfemeldung an, die die verfügbaren Befehlszeilenoptionen und deren
+ * Verwendung beschreibt. Sie wird typischerweise aufgerufen, wenn der Benutzer die Option
+ * `-h` oder `--help` angibt oder wenn ungültige Befehlszeilenargumente erkannt werden.
+ *
+ * @param fullProgName Der vollständige Name des Programms.
+ * Dieser Name wird verwendet, um die den Programmnamen auszugeben.
+ *
+ * @details
+ * Die Funktion gibt die Version des Programmes, die verfügbaren Optionen und deren Beschreibungen aus.
+ * Sie erklärt auch, wie das Programm aufgerufen wird und wie es mit Standardein- und -ausgabe umgeht.
+ *
+ */
 static void usage ( Char *fullProgName ) {
    fprintf (
       stderr,
@@ -1884,13 +1904,8 @@ static void usage ( Char *fullProgName ) {
 
 
 /*---------------------------------------------*/
-static
-void redundant ( Char* flag )
-{
-   fprintf (
-      stderr,
-      "%s: %s is redundant in versions 0.9.5 and above\n",
-      progName, flag );
+static void redundant ( Char* flag ) {
+   fprintf ( stderr, "%s: %s is redundant in versions 0.9.5 and above\n", progName, flag );
 }
 
 
@@ -1909,12 +1924,26 @@ void redundant ( Char* flag )
   specific macro APPEND_FILESPEC.
 --*/
 
-typedef
-   struct zzzz {
-      Char        *name;
-      struct zzzz *link;
-   }
-   Cell;
+/**
+ * @brief Ein Element in einer verketteten Liste, die einen Namen und einen Zeiger auf die nächste Zelle enthält.
+ *
+ * Diese Struktur wird verwendet, um eine einfach verkettete Liste von Elementen zu erstellen,
+ * wobei jedes Element eine Zeichenkette (Namen) und einen Zeiger auf das nächste Element enthält.
+ */
+typedef struct Element {
+  /**
+   * @brief Der Name, der in dieser Zelle gespeichert ist.
+   *
+   * Dies ist ein Zeiger auf eine Zeichenkette, die den Namen des Elements darstellt.
+   */
+  Char*        name;
+  /**
+   * @brief Ein Zeiger auf die nächste Zelle in der Liste.
+   *
+   * Wenn dies NULL ist, ist dies das letzte Element in der Liste.
+   */
+  struct Element* next;
+} LinkedListElementOfStrings;
 
 
 /*---------------------------------------------*/
@@ -1930,37 +1959,35 @@ static void *myMalloc ( Int32 n ) {
 
 
 /*---------------------------------------------*/
-static
-Cell *mkCell ( void )
-{
-   Cell *c;
+static LinkedListElementOfStrings *mkCell ( void ) {
+   LinkedListElementOfStrings *c;
 
-   c = (Cell*) myMalloc ( sizeof ( Cell ) );
+   c = (LinkedListElementOfStrings*) myMalloc ( sizeof ( LinkedListElementOfStrings ) );
    c->name = NULL;
-   c->link = NULL;
+   c->next = NULL;
    return c;
 }
 
 
 /*---------------------------------------------*/
-static Cell *snocString ( Cell *root, Char *name ) {
+static LinkedListElementOfStrings *snocString ( LinkedListElementOfStrings *root, Char *name ) {
   if (root == NULL) {
-    Cell *tmp = mkCell();
+    LinkedListElementOfStrings *tmp = mkCell();
     tmp->name = (Char*) myMalloc ( 5 + (unsigned int)strlen(name) );
     strcpy ( tmp->name, name );
     return tmp;
   }
   else {
-    Cell *tmp = root;
-    while (tmp->link != NULL) tmp = tmp->link;
-    tmp->link = snocString ( tmp->link, name );
+    LinkedListElementOfStrings *tmp = root;
+    while (tmp->next != NULL) tmp = tmp->next;
+    tmp->next = snocString ( tmp->next, name );
     return root;
   }
 }
 
 
 /*---------------------------------------------*/
-static void addFlagsFromEnvVar ( Cell** argList, Char* varName ) {
+static void addFlagsFromEnvVar ( LinkedListElementOfStrings** argList, Char* varName ) {
   Int32 i, j, k;
   Char *envbase, *p;
   
@@ -1997,15 +2024,17 @@ static void addFlagsFromEnvVar ( Cell** argList, Char* varName ) {
 
 
 /*---------------------------------------------*/
-#define ISFLAG(s) (strcmp(aa->name, (s))==0)
+Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
+  return (strcmp(aa->name, (s))==0);
+}
 
 
 int main ( int argc, char *argv[] ) {
   Int32  i = 0;
   Int32  j = 0;
   Char   *tmp;
-  Cell   *argList;
-  Cell   *aa;
+  LinkedListElementOfStrings   *argumentList;
+  LinkedListElementOfStrings   *argument;
   Bool   decode;
   
   // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
@@ -2032,16 +2061,26 @@ int main ( int argc, char *argv[] ) {
   exitValue               = 0;
   
   /*-- Set up signal handlers for mem access errors --*/
+  // melde eine Call-Back Funktion an, wenn das Programm auf einen nicht zugewiesenen Speicher zugreifen will
   signal (SIGSEGV, mySIGSEGVorSIGBUScatcher);
+  // melde eine Call-Back Funktion an, wenn das Programm auf eine Variable zugreifen will die nicht korrekt im Speicher ausgerichtet ist
   signal (SIGBUS,  mySIGSEGVorSIGBUScatcher);
   
+  // setze `inputFilename` auf "(none)"
   copyFileName ( inputFilename,  (Char*)"(none)" );
+  // setze `outputFilename` auf "(none)"
   copyFileName ( outputFilename, (Char*)"(none)" );
   
-  copyFileName ( progNameReally, argv[0] );
+  // setze `progNameReally` auf den Wert des ersten Argumentes. In C ist dies der Programmname.
+  copyFileName ( progNameReally, argv[0] ); // MARK: c-specific
+  // lasse den Zeiger `progName` auf die Adresse des ersten Elementes des Char-Array
   progName = &progNameReally[0];
+  // ermittle nun den `basename` (shell) des Programmes indem du...
+  // setze einen Zeiger auf das erste Zeichen im CharArray und solange nicht das Terminatorzeichen 0x00 auftritt gehe vor dem nachfolgenden Schleifendurchlauf mit dem Zeiger eine Adresse weiter
   for (tmp = &progNameReally[0]; *tmp != '\0'; tmp++) {
-    if (*tmp == PATH_SEP) {
+    // wenn das Zeichen am Zeiger identisch mit dem PATH_SEPARATOR ('/') ist
+    if (*tmp == '/') { // MARK: os-specific
+      // setze den Zeiger für den Programmnamen auf das Zeichen nach dem PATH_SEPARATOR
       progName = tmp + 1;
     }
   }
@@ -2050,11 +2089,11 @@ int main ( int argc, char *argv[] ) {
   /*-- Copy flags from env var BZIP2, and
    expand filename wildcards in arg list.
    --*/
-  argList = NULL;
-  addFlagsFromEnvVar ( &argList,  (Char*)"BZIP2" );
-  addFlagsFromEnvVar ( &argList,  (Char*)"BZIP" );
+  argumentList = NULL;
+  addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP2" );
+  addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP" );
   for (i = 1; i <= argc-1; i++) {
-    APPEND_FILESPEC(argList, argv[i]);
+    APPEND_FILESPEC(argumentList, argv[i]);
   }
   
   
@@ -2062,56 +2101,83 @@ int main ( int argc, char *argv[] ) {
   longestFilename = 7;
   numFileNames    = 0;
   decode          = True;
-  for (aa = argList; aa != NULL; aa = aa->link) {
-    if (ISFLAG("--")) {
+  // Für jedes Argument führe die Schleife aus
+  for (argument = argumentList; argument != NULL; argument = argument->next) {
+    // Wenn das Argument genau "--" ist
+    if (ISFLAG(argument,"--")) {
+      // setze das dekodieren auf falsch
       decode = False;
-      continue;
     }
-    if (aa->name[0] == '-' && decode) {
-      continue;
-    }
-    numFileNames += 1;
-    if (longestFilename < (Int32)strlen(aa->name) ) {
-      longestFilename = (Int32)strlen(aa->name);
+    // sonst, also das Argument ist ungleich "--"
+    else {
+      // prüfe, ob das Zeichen mit einem "-" beginnt und dekodiert werden soll
+      if (argument->name[0] == '-' && decode) {
+        // mache nichts
+      }
+      // sonst, also das Argument ist ungleich "--" und entweder beginnt das Argument nicht mit "-" und/oder es soll nicht mehr dekodiert werden
+      else {
+        // erhöhe die Anzahl der Dateinamen um 1
+        numFileNames += 1;
+        // wenn der Wert in longestFilename < der Länge des Argumentes ist
+        if (longestFilename < (Int32)strlen(argument->name) ) {
+          // setze den Wert von longestFilname auf den Wert der der Länge des Argumentes entspricht
+          longestFilename = (Int32)strlen(argument->name);
+        }
+        // sonst, also der Wert in longestFilname >= der Länge des Argumentes ist
+        else {
+          // mache nichts
+        }
+      }
     }
   }
   
   
-  /*-- Determine source modes; flag handling may change this too. --*/
+  // Ermittle den SourceMode vor Auswertung der Argumente, da auch über Argumente der SourceMode gesetzt werden kann.
+  // wenn die Anzahl der Dateien 0 ist
   if (numFileNames == 0) {
+    // setze den SourceMode auf `SourceMode_StandardInput2StandardOutput`
     srcMode = SourceMode_StandardInput2StandardOutput;
   }
+  // sonst, also die Anzahl der Datein != 0 ist
   else {
+    // setze den SourceMode auf `SourceMode_File2File`
     srcMode = SourceMode_File2File;
   }
   
   
-  /*-- Determine what to do (compress/uncompress/test/cat). --*/
-  /*-- Note that subsequent flag handling may change this. --*/
+  // Ermittle was getan werden soll anhand des Programmnamens. Dies kann durch ein Argument überschrieben werden.
+  // Setze den Standardwert für die zu erledigende Aufgabe auf Komprimierung
   operationMode = OPERATION_MODE_COMPRESS;
   
+  // Wenn das Programm "unzip" oder "UNZIP" heißt...
   if ( (strstr ( progName, "unzip" ) != 0) ||
       (strstr ( progName, "UNZIP" ) != 0) ) {
+    // setze die zu erledigende Aufgabe auf Dekomprimierung
     operationMode = OPERATION_MODE_DECOMPRESS;
   }
-  
-  if ( (strstr ( progName, "z2cat" ) != 0) ||
-      (strstr ( progName, "Z2CAT" ) != 0) ||
-      (strstr ( progName, "zcat" ) != 0)  ||
-      (strstr ( progName, "ZCAT" ) != 0) )  {
-    operationMode = OPERATION_MODE_DECOMPRESS;
-    srcMode = (numFileNames == 0) ? SourceMode_StandardInput2StandardOutput : SourceMode_File2StandardOutput;
+  // sonst, alsp wenn es Programm nicht "unzip" oder "UNZIP" heißt
+  else {
+    // Wenn das Programm "z2cat", "Z2CAT", "zcat" oder "ZCAT" heißt
+    if ( (strstr ( progName, "z2cat" ) != 0) ||
+        (strstr ( progName, "Z2CAT" ) != 0) ||
+        (strstr ( progName, "zcat" ) != 0)  ||
+        (strstr ( progName, "ZCAT" ) != 0) )  {
+      // setze die zu erledigende Aufgabe auf Dekomprimierung
+      operationMode = OPERATION_MODE_DECOMPRESS;
+      // wenn die Anzahl der Dateien 0 ist, setze den SourceMode auf `SourceMode_StandardInput2StandardOutput` sonst auf `SourceMode_File2StandardOutput`
+      srcMode = (numFileNames == 0) ? SourceMode_StandardInput2StandardOutput : SourceMode_File2StandardOutput;
+    }
   }
   
   
-  /*-- Look at the flags. --*/
-  for (aa = argList; aa != NULL; aa = aa->link) {
-    if (ISFLAG("--")) {
+  /*-- Look at the arguments. --*/
+  for (argument = argumentList; argument != NULL; argument = argument->next) {
+    if (ISFLAG(argument,"--")) {
       break;
     }
-    if (aa->name[0] == '-' && aa->name[1] != '-') {
-      for (j = 1; aa->name[j] != '\0'; j++) {
-        switch (aa->name[j]) {
+    if (argument->name[0] == '-' && argument->name[1] != '-') {
+      for (j = 1; argument->name[j] != '\0'; j++) {
+        switch (argument->name[j]) {
           case 'c':
             srcMode = SourceMode_File2StandardOutput;
             break;
@@ -2172,7 +2238,7 @@ int main ( int argc, char *argv[] ) {
             exit ( 0 );
             break;
           default:  fprintf ( stderr, "%s: Bad flag `%s'\n",
-                             progName, aa->name );
+                             progName, argument->name );
             usage ( progName );
             exit ( 1 );
             break;
@@ -2182,84 +2248,84 @@ int main ( int argc, char *argv[] ) {
   }
   
   /*-- And again ... --*/
-  for (aa = argList; aa != NULL; aa = aa->link) {
-    if (ISFLAG("--")) {
+  for (argument = argumentList; argument != NULL; argument = argument->next) {
+    if (ISFLAG(argument,"--")) {
       break;
     }
     else {
-      if (ISFLAG("--stdout")) {
+      if (ISFLAG(argument,"--stdout")) {
         srcMode          = SourceMode_File2StandardOutput;
       }
       else {
-        if (ISFLAG("--decompress")) {
+        if (ISFLAG(argument,"--decompress")) {
           operationMode           = OPERATION_MODE_DECOMPRESS;
         }
         else {
-          if (ISFLAG("--compress"))          {
+          if (ISFLAG(argument,"--compress"))          {
             operationMode           = OPERATION_MODE_COMPRESS;
           }
           else {
-            if (ISFLAG("--force"))             {
+            if (ISFLAG(argument,"--force"))             {
               forceOverwrite   = True;
             }
             else {
-              if (ISFLAG("--test"))              {
+              if (ISFLAG(argument,"--test"))              {
                 operationMode           = OPERATION_MODE_TEST;
               }
               else {
-                if (ISFLAG("--keep"))              {
+                if (ISFLAG(argument,"--keep"))              {
                   keepInputFiles   = True;
                 }
                 else {
-                  if (ISFLAG("--small"))             {
+                  if (ISFLAG(argument,"--small"))             {
                     smallMode        = True;
                   }
                   else {
-                    if (ISFLAG("--quiet"))             {
+                    if (ISFLAG(argument,"--quiet"))             {
                       quiet = True;
                     }
                     else {
-                      if (ISFLAG("--version"))           {
+                      if (ISFLAG(argument,"--version"))           {
                         license();
                         exit ( 0 );
                       }
                       else {
-                        if (ISFLAG("--license"))           {
+                        if (ISFLAG(argument,"--license"))           {
                           license();
                           exit ( 0 );
                         }
                         else {
-                          if (ISFLAG("--exponential"))       {
+                          if (ISFLAG(argument,"--exponential"))       {
                             workFactor = 1;
                           }
                           else {
-                            if (ISFLAG("--repetitive-best"))   {
-                              redundant(aa->name);
+                            if (ISFLAG(argument,"--repetitive-best"))   {
+                              redundant(argument->name);
                             }
                             else {
-                              if (ISFLAG("--repetitive-fast"))   {
-                                redundant(aa->name);
+                              if (ISFLAG(argument,"--repetitive-fast"))   {
+                                redundant(argument->name);
                               }
                               else {
-                                if (ISFLAG("--fast"))              {
+                                if (ISFLAG(argument,"--fast"))              {
                                   blockSize100k = 1;
                                 }
                                 else {
-                                  if (ISFLAG("--best"))              {
+                                  if (ISFLAG(argument,"--best"))              {
                                     blockSize100k = 9;
                                   }
                                   else {
-                                    if (ISFLAG("--verbose"))           {
+                                    if (ISFLAG(argument,"--verbose"))           {
                                       verbosity += 1;
                                     }
                                     else {
-                                      if (ISFLAG("--help"))              {
+                                      if (ISFLAG(argument,"--help"))              {
                                         usage ( progName );
                                         exit ( 0 );
                                       }
                                       else {
-                                        if (strncmp ( aa->name, "--", 2) == 0) {
-                                          fprintf ( stderr, "%s: Bad flag `%s'\n", progName, aa->name );
+                                        if (strncmp ( argument->name, "--", 2) == 0) {
+                                          fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
                                           usage ( progName );
                                           exit ( 1 );
                                         }
@@ -2315,16 +2381,16 @@ int main ( int argc, char *argv[] ) {
     }
     else {
       decode = True;
-      for (aa = argList; aa != NULL; aa = aa->link) {
-        if (ISFLAG("--")) {
+      for (argument = argumentList; argument != NULL; argument = argument->next) {
+        if (ISFLAG(argument,"--")) {
           decode = False;
           continue;
         }
-        if (aa->name[0] == '-' && decode) {
+        if (argument->name[0] == '-' && decode) {
           continue;
         }
         numFilesProcessed += 1;
-        compress ( aa->name );
+        compress ( argument->name );
       }
     }
   }
@@ -2337,16 +2403,16 @@ int main ( int argc, char *argv[] ) {
       }
       else {
         decode = True;
-        for (aa = argList; aa != NULL; aa = aa->link) {
-          if (ISFLAG("--")) {
+        for (argument = argumentList; argument != NULL; argument = argument->next) {
+          if (ISFLAG(argument,"--")) {
             decode = False;
             continue;
           }
-          if (aa->name[0] == '-' && decode) {
+          if (argument->name[0] == '-' && decode) {
             continue;
           }
           numFilesProcessed += 1;
-          uncompress ( aa->name );
+          uncompress ( argument->name );
         }
       }
       if (unzFailsExist) {
@@ -2362,16 +2428,16 @@ int main ( int argc, char *argv[] ) {
       }
       else {
         decode = True;
-        for (aa = argList; aa != NULL; aa = aa->link) {
-          if (ISFLAG("--")) {
+        for (argument = argumentList; argument != NULL; argument = argument->next) {
+          if (ISFLAG(argument,"--")) {
             decode = False;
             continue;
           }
-          if (aa->name[0] == '-' && decode) {
+          if (argument->name[0] == '-' && decode) {
             continue;
           }
           numFilesProcessed += 1;
-          testf ( aa->name );
+          testf ( argument->name );
         }
       }
       if (testFailsExist) {
@@ -2387,14 +2453,14 @@ int main ( int argc, char *argv[] ) {
   /* Free the argument list memory to mollify leak detectors
    (eg) Purify, Checker.  Serves no other useful purpose.
    */
-  aa = argList;
-  while (aa != NULL) {
-    Cell* aa2 = aa->link;
-    if (aa->name != NULL) {
-      free(aa->name);
+  argument = argumentList;
+  while (argument != NULL) {
+    LinkedListElementOfStrings* aa2 = argument->next;
+    if (argument->name != NULL) {
+      free(argument->name);
     }
-    free(aa);
-    aa = aa2;
+    free(argument);
+    argument = aa2;
   }
   
   return exitValue;
