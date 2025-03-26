@@ -118,7 +118,7 @@ Bool    keepInputFiles, smallMode, deleteOutputOnInterrupt;
 Bool    forceOverwrite, testFailsExist, unzFailsExist;
 Bool quiet;
 Int32   numFileNames, numFilesProcessed, blockSize100k;
-Int32   exitValue;
+Int32   exitReturnCode;
 
 /*-- source modes --*/
 static const int SourceMode_StandardInput2StandardOutput = 1;
@@ -471,6 +471,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     fprintf ( stderr, "\n" );
   }
   
+  // Arbeite bis zum Ende aller Tage
   while (True) {
     // Wenn das Ende des Eingabestroms erreicht ist
     if (myfeof(stream)) {
@@ -494,7 +495,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
       handleErrorsAndExitApplication (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
     }
   }
-  
+  // MARK: hier erfolgt nicht nur das schreiben sondern auch die eigentlich Komprimierung :-(
   BZ2_bzWriteClose64 ( &bzerr, bzf, 0, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32 );
   if (bzerr != BZ_OK) {
     // führe die Fehlerbehandlung aus
@@ -871,11 +872,11 @@ errhandler:
  
  @see exit
  */
-static void setExit ( Int32 newExitValue ) {
+static void setExitReturnCode ( Int32 newExitReturnCode ) {
   // wenn der übergebene neue Wert für den Statuscode der Anwendung größer ist als der bisher gespeicherte Statuscode
-  if (newExitValue > exitValue) {
+  if (newExitReturnCode > exitReturnCode) {
     // speichere den neuen Statuscode
-    exitValue = newExitValue;
+    exitReturnCode = newExitReturnCode;
   }
   else {
     // behalte den bisherigen Statuscode
@@ -941,8 +942,8 @@ static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
   if (!quiet && numFileNames > 0 && numFilesProcessed < numFileNames) {
     fprintf ( stderr, "%s: WARNING: some files have not been processed:\n" "%s:    %d specified on command line, %d not processed yet.\n\n", progName, progName, numFileNames, numFileNames - numFilesProcessed );
   }
-  setExit(ec);
-  exit(exitValue);
+  setExitReturnCode(ec);
+  exit(exitReturnCode);
 }
 
 
@@ -1060,12 +1061,12 @@ static void mySIGSEGVorSIGBUScatcher ( IntNative n ) {
    terribly wrong. Trying to clean up might fail spectacularly. */
   
   if (operationMode == OPERATION_MODE_COMPRESS) {
-    setExit(3);
+    setExitReturnCode(3);
   }
   else {
-    setExit(2);
+    setExitReturnCode(2);
   }
-  _exit(exitValue);
+  _exit(exitReturnCode);
 }
 
 
@@ -1085,8 +1086,8 @@ static void printConfigErrorAndExitApplication ( void ) {
            "\tof 4, 2 and 1 bytes to run properly, and they don't.\n"
            "\tProbably you can fix this by defining them correctly,\n"
            "\tand recompiling.  Bye!\n" );
-  setExit(3);
-  exit(exitValue);
+  setExitReturnCode(3);
+  exit(exitReturnCode);
 }
 
 
@@ -1179,8 +1180,8 @@ static void pad ( Char *s ) {
 static void copyFileName ( Char* to, Char* from ) {
   if ( strlen(from) > FILE_NAME_LEN-10 )  {
     fprintf ( stderr, "bzip2: file name\n`%s'\n" "is suspiciously (more than %d chars) long.\n" "Try using a reasonable file name instead.  Sorry! :-)\n", from, FILE_NAME_LEN-10 );
-    setExit(1);
-    exit(exitValue);
+    setExitReturnCode(1);
+    exit(exitReturnCode);
   }
   
   strncpy(to,from,FILE_NAME_LEN-10);
@@ -1417,7 +1418,7 @@ static void compress ( Char *name ) {
   
   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
     fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
-    setExit(1);
+    setExitReturnCode(1);
     return;
   }
   for (i = 0; i < BZ_N_SUFFIX_PAIRS; i++) {
@@ -1425,7 +1426,7 @@ static void compress ( Char *name ) {
       if (!quiet) {
         fprintf ( stderr, "%s: Input file %s already has %s suffix.\n", progName, inputFilename, compressedFilenameSuffix[i] );
       }
-      setExit(1);
+      setExitReturnCode(1);
       return;
     }
   }
@@ -1433,7 +1434,7 @@ static void compress ( Char *name ) {
     stat(inputFilename, &statBuf);
     if ( MY_S_ISDIR(statBuf.st_mode) ) {
       fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
-      setExit(1);
+      setExitReturnCode(1);
       return;
     }
   }
@@ -1441,7 +1442,7 @@ static void compress ( Char *name ) {
     if (!quiet) {
       fprintf ( stderr, "%s: Input file %s is not a normal file.\n", progName, inputFilename );
     }
-    setExit(1);
+    setExitReturnCode(1);
     return;
   }
   if ( srcMode == SourceMode_File2File && fileExists ( outputFilename ) ) {
@@ -1449,14 +1450,13 @@ static void compress ( Char *name ) {
       remove(outputFilename);
     } else {
       fprintf ( stderr, "%s: Output file %s already exists.\n", progName, outputFilename );
-      setExit(1);
+      setExitReturnCode(1);
       return;
     }
   }
-  if ( srcMode == SourceMode_File2File && !forceOverwrite &&
-      (n=countHardLinks ( inputFilename )) > 0) {
+  if ( srcMode == SourceMode_File2File && !forceOverwrite && (n=countHardLinks ( inputFilename )) > 0) {
     fprintf ( stderr, "%s: Input file %s has %d other link%s.\n", progName, inputFilename, n, n > 1 ? "s" : "" );
-    setExit(1);
+    setExitReturnCode(1);
     return;
   }
   
@@ -1472,11 +1472,9 @@ static void compress ( Char *name ) {
       inStr = stdin;
       outStr = stdout;
       if ( isatty ( fileno ( stdout ) ) ) {
-        fprintf ( stderr,
-                 "%s: I won't write compressed data to a terminal.\n",
-                 progName );
+        fprintf ( stderr, "%s: I won't write compressed data to a terminal.\n", progName );
         fprintf ( stderr, "%s: For help, type: `%s --help'.\n", progName, progName );
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       break;
@@ -1490,12 +1488,12 @@ static void compress ( Char *name ) {
         if ( inStr != NULL ) {
           fclose ( inStr );
         }
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       if ( inStr == NULL ) {
         fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       break;
@@ -1507,14 +1505,14 @@ static void compress ( Char *name ) {
         fprintf ( stderr, "%s: Can't create output file %s: %s.\n",
                  progName, outputFilename, strerror(errno) );
         if ( inStr != NULL ) fclose ( inStr );
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       if ( inStr == NULL ) {
         fprintf ( stderr, "%s: Can't open input file %s: %s.\n",
                  progName, inputFilename, strerror(errno) );
         if ( outStr != NULL ) fclose ( outStr );
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       break;
@@ -1591,14 +1589,14 @@ static void uncompress ( Char *name ) {
 zzz:
   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
     fprintf ( stderr, "%s: Can't open input file %s: %s.\n", progName, inputFilename, strerror(errno) );
-    setExit(1);
+    setExitReturnCode(1);
     return;
   }
   if ( srcMode == SourceMode_File2File || srcMode == SourceMode_File2StandardOutput ) {
     stat(inputFilename, &statBuf);
     if ( MY_S_ISDIR(statBuf.st_mode) ) {
       fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
-      setExit(1);
+      setExitReturnCode(1);
       return;
     }
   }
@@ -1606,7 +1604,7 @@ zzz:
     if (!quiet) {
       fprintf ( stderr, "%s: Input file %s is not a normal file.\n", progName, inputFilename );
     }
-    setExit(1);
+    setExitReturnCode(1);
     return;
   }
   if ( /* srcMode == SM_F2F implied && */ cantGuess ) {
@@ -1621,14 +1619,14 @@ zzz:
     }
     else {
       fprintf ( stderr, "%s: Output file %s already exists.\n", progName, outputFilename );
-      setExit(1);
+      setExitReturnCode(1);
       return;
     }
   }
   if ( srcMode == SourceMode_File2File && !forceOverwrite &&
       (n=countHardLinks ( inputFilename ) ) > 0) {
     fprintf ( stderr, "%s: Input file %s has %d other link%s.\n", progName, inputFilename, n, n > 1 ? "s" : "" );
-    setExit(1);
+    setExitReturnCode(1);
     return;
   }
   
@@ -1646,7 +1644,7 @@ zzz:
       if ( isatty ( fileno ( stdin ) ) ) {
         fprintf ( stderr, "%s: I won't read compressed data from a terminal.\n", progName );
         fprintf ( stderr, "%s: For help, type: `%s --help'.\n", progName, progName );
-        setExit(1);
+        setExitReturnCode(1);
         return;
       };
       break;
@@ -1659,7 +1657,7 @@ zzz:
         if ( inStr != NULL ) {
           fclose ( inStr );
         }
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       break;
@@ -1672,7 +1670,7 @@ zzz:
         if ( inStr != NULL ) {
           fclose ( inStr );
         }
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       if ( inStr == NULL ) {
@@ -1680,7 +1678,7 @@ zzz:
         if ( outStr != NULL ) {
           fclose ( outStr );
         }
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       break;
@@ -1729,7 +1727,7 @@ zzz:
     }
   }
   else {
-    setExit(2);
+    setExitReturnCode(2);
     if (verbosity >= 1) {
       fprintf ( stderr, "not a bzip2 file.\n" );
     }
@@ -1760,14 +1758,14 @@ static void testf ( Char *name ) {
   
   if ( srcMode != SourceMode_StandardInput2StandardOutput && !fileExists ( inputFilename ) ) {
     fprintf ( stderr, "%s: Can't open input %s: %s.\n", progName, inputFilename, strerror(errno) );
-    setExit(1);
+    setExitReturnCode(1);
     return;
   }
   if ( srcMode != SourceMode_StandardInput2StandardOutput ) {
     stat(inputFilename, &statBuf);
     if ( MY_S_ISDIR(statBuf.st_mode) ) {
       fprintf( stderr, "%s: Input file %s is a directory.\n", progName,inputFilename);
-      setExit(1);
+      setExitReturnCode(1);
       return;
     }
   }
@@ -1778,7 +1776,7 @@ static void testf ( Char *name ) {
       if ( isatty ( fileno ( stdin ) ) ) {
         fprintf ( stderr, "%s: I won't read compressed data from a terminal.\n", progName );
         fprintf ( stderr, "%s: For help, type: `%s --help'.\n", progName, progName );
-        setExit(1);
+        setExitReturnCode(1);
         return;
       };
       inStr = stdin;
@@ -1788,7 +1786,7 @@ static void testf ( Char *name ) {
       inStr = fopen ( inputFilename, "rb" );
       if ( inStr == NULL ) {
         fprintf ( stderr, "%s: Can't open input file %s:%s.\n", progName, inputFilename, strerror(errno) );
-        setExit(1);
+        setExitReturnCode(1);
         return;
       }
       break;
@@ -1828,7 +1826,7 @@ static void testf ( Char *name ) {
  *
  * @note Diese Funktion gibt keine Werte zurück.
  */
-static void license ( void ) {
+static void printLicenseOnStandardOutputStream ( void ) {
    fprintf ( stdout,
     "bzip2, a block-sorting file compressor.  "
     "Version %s.\n"
@@ -1864,7 +1862,7 @@ static void license ( void ) {
  * Sie erklärt auch, wie das Programm aufgerufen wird und wie es mit Standardein- und -ausgabe umgeht.
  *
  */
-static void usage ( Char *fullProgName ) {
+static void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
    fprintf (
       stderr,
       "bzip2, a block-sorting file compressor.  "
@@ -2058,7 +2056,7 @@ int main ( int argc, char *argv[] ) {
   numFilesProcessed       = 0;
   workFactor              = 30;
   deleteOutputOnInterrupt = False;
-  exitValue               = 0;
+  exitReturnCode               = 0;
   
   /*-- Set up signal handlers for mem access errors --*/
   // melde eine Call-Back Funktion an, wenn das Programm auf einen nicht zugewiesenen Speicher zugreifen will
@@ -2144,116 +2142,157 @@ int main ( int argc, char *argv[] ) {
     srcMode = SourceMode_File2File;
   }
   
-  
-  /*-- Look at the arguments. --*/
+  // Setze den Standardwert für die zu erledigende Aufgabe auf Komprimierung
+  operationMode = OPERATION_MODE_COMPRESS;
+
+  // Werte jetzt die Argumente für die Posix-Kurzform aus:
+  // Für jedes Argument führe die Schleife aus
   for (argument = argumentList; argument != NULL; argument = argument->next) {
+    // Wenn das Argument "--" ist
     if (ISFLAG(argument,"--")) {
+      // beende die Auswertung, so wie es POSIX vorsieht
       break;
     }
-    if (argument->name[0] == '-' && argument->name[1] != '-') {
-      for (j = 1; argument->name[j] != '\0'; j++) {
-        switch (argument->name[j]) {
-          case 'c':
-            srcMode = SourceMode_File2StandardOutput;
-            break;
-          case 'd':
-            operationMode = OPERATION_MODE_DECOMPRESS;
-            break;
-          case 'z':
-            operationMode = OPERATION_MODE_COMPRESS;
-            break;
-          case 'f':
-            forceOverwrite = True;
-            break;
-          case 't':
-            operationMode = OPERATION_MODE_TEST;
-            break;
-          case 'k':
-            keepInputFiles = True;
-            break;
-          case 's':
-            smallMode = True;
-            break;
-          case 'q':
-            quiet = True;
-            break;
-          case '1':
-            blockSize100k    = 1;
-            break;
-          case '2':
-            blockSize100k    = 2;
-            break;
-          case '3':
-            blockSize100k    = 3;
-            break;
-          case '4':
-            blockSize100k    = 4;
-            break;
-          case '5':
-            blockSize100k    = 5;
-            break;
-          case '6':
-            blockSize100k    = 6;
-            break;
-          case '7':
-            blockSize100k    = 7;
-            break;
-          case '8':
-            blockSize100k    = 8;
-            break;
-          case '9':
-            blockSize100k    = 9;
-            break;
-          case 'V':
-          case 'L': license();
-            exit ( 0 );
-            break;
-          case 'v': verbosity += 1; break;
-          case 'h': usage ( progName );
-            exit ( 0 );
-            break;
-          default:  fprintf ( stderr, "%s: Bad flag `%s'\n",
-                             progName, argument->name );
-            usage ( progName );
-            exit ( 1 );
-            break;
+    else {
+      // Wenn das Argument mit einem "-" beginnt, dem keine weiteren "-" folgend (also auch nicht mehr als zwei "-"
+      if (argument->name[0] == '-' && argument->name[1] != '-') {
+        // für jedes (j++) Zeichen nach dem Minus (j=1) solange bis die Zeichenkette zu Ende ist (j != '\0')
+        for (j = 1; argument->name[j] != '\0'; j++) {
+          // Prüfe den Wert des Zeichens (der hier einem Kurzargument nach POSIX entspricht)
+          switch (argument->name[j]) {
+            case 'c': // Wenn das Argument 'c' ist
+              // setze den SourceMode auf `SourceMode_File2StandardOutput`
+              srcMode = SourceMode_File2StandardOutput;
+              break;
+            case 'd': // Wenn das Argument 'd' ist
+              // setze die zu erledigende Aufgaben auf Dekomrimierung
+              operationMode = OPERATION_MODE_DECOMPRESS;
+              break;
+            case 'z': // Wenn das Argument 'z' ist
+              // setze die zu erledigende Aufgabe auf Komprimierung
+              operationMode = OPERATION_MODE_COMPRESS;
+              break;
+            case 'f': // Wenn das Argument 'f' ist
+              // überschreibe eine evtl. vorhandene Zieldatei
+              forceOverwrite = True;
+              break;
+            case 't': // Wenn das Argument 't' ist
+              // setze die zu erledigende Aufgabe auf Testen der Datei
+              operationMode = OPERATION_MODE_TEST;
+              break;
+            case 'k': // Wenn das Argument 'k'
+              // behalte die ursprüngliche Datei
+              keepInputFiles = True;
+              break;
+            case 's': // Wenn das Argument 's' ist
+              // benutze wenig Speicherplatz
+              smallMode = True;
+              break;
+            case 'q': // Wenn das Argument 'q'
+              // gebe möglichst wenig Informationen auf der Kommandozeile aus
+              quiet = True;
+              break;
+            case '1': // Wenn das Argument '1' ist
+              // setze die Blockgrößenfaktor auf 1
+              blockSize100k    = 1;
+              break;
+            case '2': // Wenn das Argument '2' ist
+              // setze die Blockgrößenfaktor auf 2
+              blockSize100k    = 2;
+              break;
+            case '3': // Wenn das Argument '3' ist
+              // setze die Blockgrößenfaktor auf 3
+              blockSize100k    = 3;
+              break;
+            case '4': // Wenn das Argument '4' ist
+              // setze die Blockgrößenfaktor auf 4
+              blockSize100k    = 4;
+              break;
+            case '5': // Wenn das Argument '5' ist
+              // setze die Blockgrößenfaktor auf 5
+              blockSize100k    = 5;
+              break;
+            case '6': // Wenn das Argument '6' ist
+              // setze die Blockgrößenfaktor auf 6
+              blockSize100k    = 6;
+              break;
+            case '7': // Wenn das Argument '7' ist
+              // setze die Blockgrößenfaktor auf 7
+              blockSize100k    = 7;
+              break;
+            case '8': // Wenn das Argument '8' ist
+              // setze die Blockgrößenfaktor auf 8
+              blockSize100k    = 8;
+              break;
+            case '9': // Wenn das Argument '9' ist
+              // setze die Blockgrößenfaktor auf 9
+              blockSize100k    = 9;
+              break;
+            case 'V': // Wenn das Argument 'V' oder ...
+            case 'L': // ...wenn das Argument 'L' ist
+              // zeige den Lizenztext an
+              printLicenseOnStandardOutputStream();
+              // beende die Anwendung mit dem Rückkehrcode fehlerfrei
+              exit ( 0 );
+              break;
+            case 'v': // Wenn das Argument 'v' ist
+              // erhöhe den Detailgrad der Ausgaben um 1
+              verbosity += 1;
+              break;
+            case 'h':  // Wenn das Argument 'h'
+              // zeige die Information zur Nutzung des Programms an
+              printUsageInformationOnStandardErrorStream ( progName ); // MARK: Logikfehler, schreiben auf stderr aber RC=0
+              // beende die Anwendung mit dem Rückkehrcode fehlerfrei
+              exit ( 0 );
+              break;
+            default: // Wenn ein anderes, also unbekanntes, Argument angegeben ist
+              // gebe eine Fehlermeldung mit Programmnamen und Argument auf dem Standard-Fehler-Datenstrom aus
+              fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
+              // zeige die Information zur Nutzung des Programms an
+              printUsageInformationOnStandardErrorStream ( progName );
+              // beende die Anwendung mit dem Rückkehrcode Fehler Nr. 1
+              exit ( 1 );
+              break;
+          }
         }
       }
     }
   }
   
-  /*-- And again ... --*/
+  // Wiederhole die Auswertung der Argumente für die POSIX Langform (--argument)
   for (argument = argumentList; argument != NULL; argument = argument->next) {
+    // Wenn das Argument "--" ist
     if (ISFLAG(argument,"--")) {
+      // beende die Auswertung, so wie es POSIX vorsieht
       break;
     }
     else {
       if (ISFLAG(argument,"--stdout")) {
-        srcMode          = SourceMode_File2StandardOutput;
+        srcMode = SourceMode_File2StandardOutput;
       }
       else {
         if (ISFLAG(argument,"--decompress")) {
-          operationMode           = OPERATION_MODE_DECOMPRESS;
+          operationMode = OPERATION_MODE_DECOMPRESS;
         }
         else {
           if (ISFLAG(argument,"--compress"))          {
-            operationMode           = OPERATION_MODE_COMPRESS;
+            operationMode = OPERATION_MODE_COMPRESS;
           }
           else {
             if (ISFLAG(argument,"--force"))             {
-              forceOverwrite   = True;
+              forceOverwrite = True;
             }
             else {
               if (ISFLAG(argument,"--test"))              {
-                operationMode           = OPERATION_MODE_TEST;
+                operationMode = OPERATION_MODE_TEST;
               }
               else {
                 if (ISFLAG(argument,"--keep"))              {
-                  keepInputFiles   = True;
+                  keepInputFiles = True;
                 }
                 else {
                   if (ISFLAG(argument,"--small"))             {
-                    smallMode        = True;
+                    smallMode = True;
                   }
                   else {
                     if (ISFLAG(argument,"--quiet"))             {
@@ -2261,12 +2300,12 @@ int main ( int argc, char *argv[] ) {
                     }
                     else {
                       if (ISFLAG(argument,"--version"))           {
-                        license();
+                        printLicenseOnStandardOutputStream();
                         exit ( 0 );
                       }
                       else {
                         if (ISFLAG(argument,"--license"))           {
-                          license();
+                          printLicenseOnStandardOutputStream();
                           exit ( 0 );
                         }
                         else {
@@ -2295,13 +2334,13 @@ int main ( int argc, char *argv[] ) {
                                     }
                                     else {
                                       if (ISFLAG(argument,"--help"))              {
-                                        usage ( progName );
+                                        printUsageInformationOnStandardErrorStream ( progName );
                                         exit ( 0 );
                                       }
                                       else {
                                         if (strncmp ( argument->name, "--", 2) == 0) {
                                           fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                                          usage ( progName );
+                                          printUsageInformationOnStandardErrorStream ( progName );
                                           exit ( 1 );
                                         }
                                       }
@@ -2391,8 +2430,8 @@ int main ( int argc, char *argv[] ) {
         }
       }
       if (unzFailsExist) {
-        setExit(2);
-        exit(exitValue);
+        setExitReturnCode(2);
+        exit(exitReturnCode);
       }
     }
     
@@ -2419,8 +2458,8 @@ int main ( int argc, char *argv[] ) {
         if (!quiet) {
           fprintf ( stderr, "\n" "You can use the `bzip2recover' program to attempt to recover\n" "data from undamaged sections of corrupted files.\n\n" );
         }
-        setExit(2);
-        exit(exitValue);
+        setExitReturnCode(2);
+        exit(exitReturnCode);
       }
     }
   }
@@ -2438,7 +2477,7 @@ int main ( int argc, char *argv[] ) {
     argument = aa2;
   }
   
-  return exitValue;
+  return exitReturnCode;
 }
 
 

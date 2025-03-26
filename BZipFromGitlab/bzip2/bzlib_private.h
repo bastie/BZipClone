@@ -42,6 +42,7 @@ typedef unsigned short  UInt16;
 
 static const unsigned char True =  ((Bool)1);
 static const unsigned char False = ((Bool)0);
+
 static const int BUFFER_SIZE = 5000;
 
 

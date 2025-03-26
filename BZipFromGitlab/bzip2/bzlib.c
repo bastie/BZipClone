@@ -447,20 +447,31 @@ static Bool handle_compress ( bz_stream* strm ) {
 /*---------------------------------------------------*/
 int BZ2_bzCompress ( bz_stream *strm, int action ) {
   Bool progress;
-  EState* s;
+  
+  // Deklariere einen Zeiger vom Typ EState für den Status des übergebenen strm
+  EState* statusOfStrm;
+  
+  // Prüfung der Vorbedingungen zum Methodeneintritt
+  // Wenn der Zeiger auf die Struktur NULL ist
   if (strm == NULL) {
+    // gebe einen Fehler zurück
     return BZ_PARAM_ERROR;
   }
-  s = strm->state;
-  if (s == NULL) {
+  // sichere die Status aus der Struktur
+  statusOfStrm = strm->state;
+  // Wenn der Status NULL ist
+  if (statusOfStrm == NULL) {
+    // gebe einen Fehler zurück
     return BZ_PARAM_ERROR;
   }
-  if (s->strm != strm) {
+  // Wenn der Status, der auf die Struktur zeigt nicht identisch ist wie die Struktur die auf diesen Status zeigt
+  if (statusOfStrm->strm != strm) {
+    // gebe einen Fehler zurück
     return BZ_PARAM_ERROR;
   }
   
 preswitch:
-  switch (s->mode) {
+  switch (statusOfStrm->mode) {
       
     case BZ_M_IDLE:
       return BZ_SEQUENCE_ERROR;
@@ -471,12 +482,12 @@ preswitch:
           progress = handle_compress ( strm );
           return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
         case BZ_FLUSH :
-          s->avail_in_expect = strm->avail_in;
-          s->mode = BZ_M_FLUSHING;
+          statusOfStrm->avail_in_expect = strm->avail_in;
+          statusOfStrm->mode = BZ_M_FLUSHING;
           goto preswitch;
         case BZ_FINISH :
-          s->avail_in_expect = strm->avail_in;
-          s->mode = BZ_M_FINISHING;
+          statusOfStrm->avail_in_expect = strm->avail_in;
+          statusOfStrm->mode = BZ_M_FINISHING;
           goto preswitch;
         default :
           return BZ_PARAM_ERROR;
@@ -486,33 +497,33 @@ preswitch:
       if (action != BZ_FLUSH) {
         return BZ_SEQUENCE_ERROR;
       }
-      if (s->avail_in_expect != s->strm->avail_in) {
+      if (statusOfStrm->avail_in_expect != statusOfStrm->strm->avail_in) {
         return BZ_SEQUENCE_ERROR;
       }
       progress = handle_compress ( strm );
-      if (s->avail_in_expect > 0 || !isempty_RL(s) ||
-          s->state_out_pos < s->numZ) {
+      if (statusOfStrm->avail_in_expect > 0 || !isempty_RL(statusOfStrm) ||
+          statusOfStrm->state_out_pos < statusOfStrm->numZ) {
         return BZ_FLUSH_OK;
       }
-      s->mode = BZ_M_RUNNING;
+      statusOfStrm->mode = BZ_M_RUNNING;
       return BZ_RUN_OK;
       
     case BZ_M_FINISHING:
       if (action != BZ_FINISH) {
         return BZ_SEQUENCE_ERROR;
       }
-      if (s->avail_in_expect != s->strm->avail_in) {
+      if (statusOfStrm->avail_in_expect != statusOfStrm->strm->avail_in) {
         return BZ_SEQUENCE_ERROR;
       }
       progress = handle_compress ( strm );
       if (!progress) {
         return BZ_SEQUENCE_ERROR;
       }
-      if (s->avail_in_expect > 0 || !isempty_RL(s) ||
-          s->state_out_pos < s->numZ) {
+      if (statusOfStrm->avail_in_expect > 0 || !isempty_RL(statusOfStrm) ||
+          statusOfStrm->state_out_pos < statusOfStrm->numZ) {
         return BZ_FINISH_OK;
       }
-      s->mode = BZ_M_IDLE;
+      statusOfStrm->mode = BZ_M_IDLE;
       return BZ_STREAM_END;
   }
   return BZ_OK; /*--not reached--*/
@@ -521,8 +532,8 @@ preswitch:
 
 /*---------------------------------------------------*/
 int BZ2_bzCompressEnd  ( bz_stream *strm ) {
-  // Führe Vorprüfungen aus:
   EState* s;
+  // Führe Vorprüfungen aus:
   {
     // Wenn der übergebene Datenstrom NULL ist
     if (strm == NULL) {
@@ -1272,7 +1283,7 @@ void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nb
   Int32 n;
   unsigned long n2;
   Int32 ret;
-   bzFile* bzf = (bzFile*)b;
+  bzFile* bzf = (bzFile*)b;
 
   if (bzf == NULL) {
     BZ_SETERR(BZ_OK);
