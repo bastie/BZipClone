@@ -470,63 +470,69 @@ int BZ2_bzCompress ( bz_stream *strm, int action ) {
     return BZ_PARAM_ERROR;
   }
   
-preswitch:
-  switch (statusOfStrm->mode) {
-      
-    case BZ_M_IDLE:
-      return BZ_SEQUENCE_ERROR;
-      
-    case BZ_M_RUNNING:
-      switch (action) {
-        case BZ_RUN :
-          progress = handle_compress ( strm );
-          return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
-        case BZ_FLUSH :
-          statusOfStrm->avail_in_expect = strm->avail_in;
-          statusOfStrm->mode = BZ_M_FLUSHING;
-          goto preswitch;
-        case BZ_FINISH :
-          statusOfStrm->avail_in_expect = strm->avail_in;
-          statusOfStrm->mode = BZ_M_FINISHING;
-          goto preswitch;
-        default :
-          return BZ_PARAM_ERROR;
-      }
-      
-    case BZ_M_FLUSHING:
-      if (action != BZ_FLUSH) {
+  do {
+    switch (statusOfStrm->mode) {
+        
+      case BZ_M_IDLE:
         return BZ_SEQUENCE_ERROR;
-      }
-      if (statusOfStrm->avail_in_expect != statusOfStrm->strm->avail_in) {
-        return BZ_SEQUENCE_ERROR;
-      }
-      progress = handle_compress ( strm );
-      if (statusOfStrm->avail_in_expect > 0 || !isempty_RL(statusOfStrm) ||
-          statusOfStrm->state_out_pos < statusOfStrm->numZ) {
-        return BZ_FLUSH_OK;
-      }
-      statusOfStrm->mode = BZ_M_RUNNING;
-      return BZ_RUN_OK;
-      
-    case BZ_M_FINISHING:
-      if (action != BZ_FINISH) {
-        return BZ_SEQUENCE_ERROR;
-      }
-      if (statusOfStrm->avail_in_expect != statusOfStrm->strm->avail_in) {
-        return BZ_SEQUENCE_ERROR;
-      }
-      progress = handle_compress ( strm );
-      if (!progress) {
-        return BZ_SEQUENCE_ERROR;
-      }
-      if (statusOfStrm->avail_in_expect > 0 || !isempty_RL(statusOfStrm) ||
-          statusOfStrm->state_out_pos < statusOfStrm->numZ) {
-        return BZ_FINISH_OK;
-      }
-      statusOfStrm->mode = BZ_M_IDLE;
-      return BZ_STREAM_END;
-  }
-  return BZ_OK; /*--not reached--*/
+        
+      case BZ_M_RUNNING:
+        switch (action) {
+          case BZ_RUN :
+            progress = handle_compress ( strm );
+            return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
+          case BZ_FLUSH :
+            statusOfStrm->avail_in_expect = strm->avail_in;
+            statusOfStrm->mode = BZ_M_FLUSHING;
+            break; // Zurück zum Anfang der do-while Schleife
+          case BZ_FINISH :
+            statusOfStrm->avail_in_expect = strm->avail_in;
+            statusOfStrm->mode = BZ_M_FINISHING;
+            break; // Zurück zum Anfang der do-while Schleife
+          default :
+            return BZ_PARAM_ERROR;
+        }
+        break; // Verlasse den inneren Switch
+        
+      case BZ_M_FLUSHING:
+        if (action != BZ_FLUSH) {
+          return BZ_SEQUENCE_ERROR;
+        }
+        if (statusOfStrm->avail_in_expect != statusOfStrm->strm->avail_in) {
+          return BZ_SEQUENCE_ERROR;
+        }
+        progress = handle_compress ( strm );
+        if (statusOfStrm->avail_in_expect > 0 || !isempty_RL(statusOfStrm) ||
+            statusOfStrm->state_out_pos < statusOfStrm->numZ) {
+          return BZ_FLUSH_OK;
+        }
+        statusOfStrm->mode = BZ_M_RUNNING;
+        return BZ_RUN_OK;
+        
+      case BZ_M_FINISHING:
+        if (action != BZ_FINISH) {
+          return BZ_SEQUENCE_ERROR;
+        }
+        if (statusOfStrm->avail_in_expect != statusOfStrm->strm->avail_in) {
+          return BZ_SEQUENCE_ERROR;
+        }
+        progress = handle_compress ( strm );
+        if (!progress) {
+          return BZ_SEQUENCE_ERROR;
+        }
+        if (statusOfStrm->avail_in_expect > 0 || !isempty_RL(statusOfStrm) ||
+            statusOfStrm->state_out_pos < statusOfStrm->numZ) {
+          return BZ_FINISH_OK;
+        }
+        statusOfStrm->mode = BZ_M_IDLE;
+        return BZ_STREAM_END;
+        
+      default:
+        // Fehlerfall bei einen ungültigen Mode
+        return BZ_PARAM_ERROR;
+    }
+  } while (True);
+  return BZ_OK; /* wird niemals erreicht*/
 }
 
 
