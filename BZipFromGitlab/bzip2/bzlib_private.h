@@ -167,10 +167,10 @@ static inline void BZ_FINALISE_CRC (unsigned int *crcVar) {
 
 /*-- States and modes for compression. --*/
 
-#define BZ_M_IDLE      1
-#define BZ_M_RUNNING   2
-#define BZ_M_FLUSHING  3
-#define BZ_M_FINISHING 4
+static const int BZ_MODUS_IDLE = 1;
+static const int BZ_MODUS_RUNNING = 2;
+static const int BZ_MODUS_FLUSHING = 3;
+static const int BZ_MODUS_FINISHING = 4;
 
 #define BZ_S_OUTPUT    1
 #define BZ_S_INPUT     2
@@ -184,14 +184,13 @@ static inline void BZ_FINALISE_CRC (unsigned int *crcVar) {
 
 
 /*-- Structure holding all the compression-side stuff. --*/
-
 typedef struct {
   /* pointer back to the struct bz_stream */
   bz_stream* strm;
   
   /* mode this stream is in, and whether inputting */
   /* or outputting data */
-  Int32    mode;
+  Int32 modus;
   Int32    state;
   
   /* remembers avail_in when flush/finish requested */

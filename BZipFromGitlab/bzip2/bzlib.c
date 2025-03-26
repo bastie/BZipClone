@@ -201,7 +201,7 @@ int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int verbosity, int 
   
   s->blockNo           = 0;
   s->state             = BZ_S_INPUT;
-  s->mode              = BZ_M_RUNNING;
+  s->modus              = BZ_MODUS_RUNNING;
   s->combinedCRC       = 0;
   s->blockSize100k     = blockSize100k;
   s->nblockMAX         = 100000 * blockSize100k - 19;
@@ -307,7 +307,7 @@ static void flush_RL ( EState* s ) {
 static Bool copy_input_until_stop ( EState* s ) {
    Bool progress_in = False;
 
-   if (s->mode == BZ_M_RUNNING) {
+   if (s->modus == BZ_MODUS_RUNNING) {
 
       /*-- fast track the common case --*/
       while (True) {
@@ -404,14 +404,14 @@ static Bool handle_compress ( bz_stream* strm ) {
         if (s->state_out_pos < s->numZ) {
           break;
         }
-         if (s->mode == BZ_M_FINISHING &&
+         if (s->modus == BZ_MODUS_FINISHING &&
              s->avail_in_expect == 0 &&
              isempty_RL(s)) {
            break;
          }
          prepare_new_block ( s );
          s->state = BZ_S_INPUT;
-         if (s->mode == BZ_M_FLUSHING &&
+         if (s->modus == BZ_MODUS_FLUSHING &&
              s->avail_in_expect == 0 &&
              isempty_RL(s)) {
            break;
@@ -420,9 +420,9 @@ static Bool handle_compress ( bz_stream* strm ) {
 
       if (s->state == BZ_S_INPUT) {
          progress_in |= copy_input_until_stop ( s );
-         if (s->mode != BZ_M_RUNNING && s->avail_in_expect == 0) {
+         if (s->modus != BZ_MODUS_RUNNING && s->avail_in_expect == 0) {
             flush_RL ( s );
-            BZ2_compressBlock ( s, (Bool)(s->mode == BZ_M_FINISHING) );
+            BZ2_compressBlock ( s, (Bool)(s->modus == BZ_MODUS_FINISHING) );
             s->state = BZ_S_OUTPUT;
          }
          else {
@@ -471,30 +471,30 @@ int BZ2_bzCompress ( bz_stream *strm, int action ) {
   }
   
   do {
-    switch (statusOfStrm->mode) {
+    switch (statusOfStrm->modus) {
         
-      case BZ_M_IDLE:
+      case BZ_MODUS_IDLE:
         return BZ_SEQUENCE_ERROR;
         
-      case BZ_M_RUNNING:
+      case BZ_MODUS_RUNNING:
         switch (action) {
           case BZ_RUN :
             progress = handle_compress ( strm );
             return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
           case BZ_FLUSH :
             statusOfStrm->avail_in_expect = strm->avail_in;
-            statusOfStrm->mode = BZ_M_FLUSHING;
+            statusOfStrm->modus = BZ_MODUS_FLUSHING;
             break; // Zurück zum Anfang der do-while Schleife
           case BZ_FINISH :
             statusOfStrm->avail_in_expect = strm->avail_in;
-            statusOfStrm->mode = BZ_M_FINISHING;
+            statusOfStrm->modus = BZ_MODUS_FINISHING;
             break; // Zurück zum Anfang der do-while Schleife
           default :
             return BZ_PARAM_ERROR;
         }
         break; // Verlasse den inneren Switch
         
-      case BZ_M_FLUSHING:
+      case BZ_MODUS_FLUSHING:
         if (action != BZ_FLUSH) {
           return BZ_SEQUENCE_ERROR;
         }
@@ -506,10 +506,10 @@ int BZ2_bzCompress ( bz_stream *strm, int action ) {
             statusOfStrm->state_out_pos < statusOfStrm->numZ) {
           return BZ_FLUSH_OK;
         }
-        statusOfStrm->mode = BZ_M_RUNNING;
+        statusOfStrm->modus = BZ_MODUS_RUNNING;
         return BZ_RUN_OK;
         
-      case BZ_M_FINISHING:
+      case BZ_MODUS_FINISHING:
         if (action != BZ_FINISH) {
           return BZ_SEQUENCE_ERROR;
         }
@@ -524,11 +524,11 @@ int BZ2_bzCompress ( bz_stream *strm, int action ) {
             statusOfStrm->state_out_pos < statusOfStrm->numZ) {
           return BZ_FINISH_OK;
         }
-        statusOfStrm->mode = BZ_M_IDLE;
+        statusOfStrm->modus = BZ_MODUS_IDLE;
         return BZ_STREAM_END;
         
       default:
-        // Fehlerfall bei einen ungültigen Mode
+        // Fehlerfall bei einen ungültigen Modus
         return BZ_PARAM_ERROR;
     }
   } while (True);

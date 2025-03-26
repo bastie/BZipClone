@@ -1396,7 +1396,9 @@ static void compress ( Char *name ) {
   
   deleteOutputOnInterrupt = False;
   
+  // Ist der Name nicht gesetzt und der SourceModus nicht StandardInput nach StandardOutput
   if (name == NULL && srcMode != SourceMode_StandardInput2StandardOutput) {
+    // Gebe einen Fehler aus und beende das Programm
     printUnexpectedProgramStateAndExitApplication ( "compress: bad modes\n" );
   }
   
