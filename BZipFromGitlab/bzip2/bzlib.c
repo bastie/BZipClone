@@ -624,9 +624,7 @@ int BZ2_bzCompressEnd  ( bz_stream *strm ) {
 /*---------------------------------------------------*/
 
 /*---------------------------------------------------*/
-int BZ2_bzDecompressInit ( bz_stream* strm,
-                       int        verbosity,
-                          int        small ) {
+int BZ2_bzDecompressInit ( bz_stream* strm, int verbosity, int small ) {
   DState* s;
   
   if (!bz_config_ok()) {
@@ -995,7 +993,8 @@ static Bool unRLE_obuf_to_output_SMALL ( DState* s ) {
       s->nblock_used += 1;
     }
     
-  } else {
+  }
+  else {
     
     while (True) {
       /* try to finish existing run */
@@ -1067,7 +1066,6 @@ static Bool unRLE_obuf_to_output_SMALL ( DState* s ) {
       BZ_GET_SMALL(s->k0);
       s->nblock_used += 1;
     }
-    
   }
 }
 
@@ -1175,7 +1173,6 @@ int BZ2_bzDecompressEnd ( bz_stream *strm ) {
 }
 
 
-#ifndef BZ_NO_STDIO
 /*---------------------------------------------------*/
 /*--- File I/O stuff                              ---*/
 /*---------------------------------------------------*/
@@ -1575,8 +1572,6 @@ void BZ2_bzReadGetUnused ( int* bzerror, BZFILE* b, void** unused, int* nUnused 
   *nUnused = bzf->strm.avail_in;
   *unused = bzf->strm.next_in;
 }
-#endif
-
 
 /*---------------------------------------------------*/
 /*--- Misc convenience stuff                      ---*/
@@ -1720,8 +1715,6 @@ const char * BZ2_bzlibVersion (void) {
    return BZ_VERSION;
 }
 
-
-#ifndef BZ_NO_STDIO
 /*---------------------------------------------------*/
 
 #   define SET_BINARY_MODE(file)
@@ -1851,12 +1844,12 @@ int BZ2_bzwrite (BZFILE* b, void* buf, int len ) {
    int bzerr;
 
    BZ2_bzWrite(&bzerr,b,buf,len);
-   if(bzerr == BZ_OK) {
+  switch (bzerr) {
+    case  BZ_OK:
       return len;
-   }
-   else{
+    default:
       return -1;
-   }
+  }
 }
 
 
@@ -1926,8 +1919,6 @@ const char * BZ2_bzerror (BZFILE *b, int *errnum) {
   *errnum = err;
   return bzerrorstrings[err*-1];
 }
-#endif
-
 
 /*-------------------------------------------------------------*/
 /*--- end                                           bzlib.c ---*/
