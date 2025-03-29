@@ -85,8 +85,8 @@ static inline void fallbackSimpleSort ( UInt32* fmap, UInt32* eclass, Int32 lo, 
                       lz = stackLo[sp];  \
                       hz = stackHi[sp]; }
 
-#define FALLBACK_QSORT_SMALL_THRESH 10
-#define FALLBACK_QSORT_STACK_SIZE   100
+static const int FALLBACK_QSORT_SMALL_THRESH = 10;
+static const int FALLBACK_QSORT_STACK_SIZE = 100;
 
 
 static void fallbackQSort3 ( UInt32* fmap, UInt32* eclass, Int32 loSt, Int32 hiSt ) {
@@ -146,7 +146,7 @@ static void fallbackQSort3 ( UInt32* fmap, UInt32* eclass, Int32 loSt, Int32 hiS
           ltLo += 1;
           unLo += 1;
           continue;
-        };
+        }
         if (n > 0) {
           break;
         }
@@ -162,7 +162,7 @@ static void fallbackQSort3 ( UInt32* fmap, UInt32* eclass, Int32 loSt, Int32 hiS
           gtHi -= 1;
           unHi -= 1;
           continue;
-        };
+        }
         if (n < 0) {
           break;
         }
@@ -182,10 +182,10 @@ static void fallbackQSort3 ( UInt32* fmap, UInt32* eclass, Int32 loSt, Int32 hiS
       continue;
     }
     
-    n = fmin(ltLo-lo, unLo-ltLo);
-    fvswap(lo, unLo-n, n);
-    m = fmin(hi-gtHi, gtHi-unHi);
-    fvswap(unLo, hi-m+1, m);
+    n = fmin (ltLo-lo, unLo-ltLo);
+    fvswap (lo, unLo-n, n);
+    m = fmin (hi-gtHi, gtHi-unHi);
+    fvswap (unLo, hi-m+1, m);
     
     n = lo + unLo - ltLo - 1;
     m = hi - (gtHi - unHi) + 1;
@@ -230,11 +230,7 @@ static void fallbackQSort3 ( UInt32* fmap, UInt32* eclass, Int32 loSt, Int32 hiS
 #define      WORD_BH(zz)  bhtab[(zz) >> 5]
 #define UNALIGNED_BH(zz)  ((zz) & 0x01f)
 
-static void fallbackSort ( UInt32* fmap,
-                    UInt32* eclass,
-                    UInt32* bhtab,
-                    Int32   nblock,
-                    Int32   verb ) {
+static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nblock, Int32 verb ) {
   Int32 ftab[257];
   Int32 ftabCopy[256];
   Int32 H, i, j, k, l, r, cc, cc1;
@@ -302,7 +298,10 @@ static void fallbackSort ( UInt32* fmap,
       if (ISSET_BH(i)) {
         j = i;
       }
-      k = fmap[i] - H; if (k < 0) k += nblock;
+      k = fmap[i] - H;
+      if (k < 0) {
+        k += nblock;
+      }
       eclass[k] = j;
     }
     
@@ -324,12 +323,16 @@ static void fallbackSort ( UInt32* fmap,
         }
       }
       l = k - 1;
-      if (l >= nblock) break;
+      if (l >= nblock) {
+        break;
+      }
       while (!ISSET_BH(k) && UNALIGNED_BH(k)) {
         k += 1;
       }
       if (!ISSET_BH(k)) {
-        while (WORD_BH(k) == 0x00000000) k += 32;
+        while (WORD_BH(k) == 0x00000000) {
+          k += 32;
+        }
         while (!ISSET_BH(k)) {
           k += 1;
         }
@@ -633,7 +636,7 @@ static inline Bool mainGtU ( UInt32 i1, UInt32 i2, UChar* block, UInt16* quadran
    because the number of elems to sort is
    usually small, typically <= 20.
 --*/
-static Int32 incs[14] = { 1, 4, 13, 40, 121, 364, 1093, 3280, 9841, 29524, 88573, 265720, 797161, 2391484 };
+static const Int32 incs[14] = { 1, 4, 13, 40, 121, 364, 1093, 3280, 9841, 29524, 88573, 265720, 797161, 2391484 };
 
 static void mainSimpleSort ( UInt32* ptr,
                       UChar*  block,
@@ -652,7 +655,9 @@ static void mainSimpleSort ( UInt32* ptr,
   }
   
   hp = 0;
-  while (incs[hp] < bigN) hp += 1;
+  while (incs[hp] < bigN) {
+    hp += 1;
+  }
   hp -= 1;
   
   for (; hp >= 0; hp--) {
@@ -771,14 +776,7 @@ static inline UChar mmed3 ( UChar a, UChar b, UChar c ) {
 #define MAIN_QSORT_DEPTH_THRESH (BZ_N_RADIX + BZ_N_QSORT)
 #define MAIN_QSORT_STACK_SIZE 100
 
-static void mainQSort3 ( UInt32* ptr,
-                  UChar*  block,
-                  UInt16* quadrant,
-                  Int32   nblock,
-                  Int32   loSt,
-                  Int32   hiSt,
-                  Int32   dSt,
-                        Int32*  budget ) {
+static void mainQSort3 ( UInt32* ptr, UChar* block, UInt16* quadrant, Int32 nblock, Int32 loSt, Int32 hiSt, Int32 dSt, Int32* budget ) {
   Int32 unLo, unHi, ltLo, gtHi, n, m, med;
   Int32 sp, lo, hi, d;
   
@@ -798,8 +796,7 @@ static void mainQSort3 ( UInt32* ptr,
     AssertH ( sp < MAIN_QSORT_STACK_SIZE - 2, 1001 );
     
     mpop ( lo, hi, d );
-    if (hi - lo < MAIN_QSORT_SMALL_THRESH ||
-        d > MAIN_QSORT_DEPTH_THRESH) {
+    if (hi - lo < MAIN_QSORT_SMALL_THRESH || d > MAIN_QSORT_DEPTH_THRESH) {
       mainSimpleSort ( ptr, block, quadrant, nblock, lo, hi, d, budget );
       if (*budget < 0) {
         return;
@@ -923,13 +920,7 @@ static void mainQSort3 ( UInt32* ptr,
 #define SETMASK (1 << 21)
 #define CLEARMASK (~(SETMASK))
 
-static void mainSort ( UInt32* ptr,
-                UChar*  block,
-                UInt16* quadrant,
-                UInt32* ftab,
-                Int32   nblock,
-                Int32   verb,
-                      Int32*  budget ) {
+static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab, Int32 nblock, Int32 verb, Int32* budget ) {
   Int32  i, j, k, ss, sb;
   Int32  runningOrder[256];
   Bool   bigDone[256];
@@ -975,7 +966,9 @@ static void mainSort ( UInt32* ptr,
     quadrant[nblock+i] = 0;
   }
   
-  if (verb >= 4) VPrintf0 ( "        bucket sorting ...\n" );
+  if (verb >= 4) {
+    VPrintf0 ( "        bucket sorting ...\n" );
+  }
   
   /*-- Complete the initial radix sort --*/
   for (i = 1; i <= 65536; i++) {
@@ -1022,7 +1015,10 @@ static void mainSort ( UInt32* ptr,
   {
     Int32 vv;
     Int32 h = 1;
-    do h = 3 * h + 1; while (h <= 256);
+    do {
+      h = 3 * h + 1;
+    } while (h <= 256);
+    
     do {
       h = h / 3;
       for (i = h; i <= 255; i++) {
@@ -1073,16 +1069,13 @@ static void mainSort ( UInt32* ptr,
           Int32 hi = (ftab[sb+1] & CLEARMASK) - 1;
           if (hi > lo) {
             if (verb >= 4) {
-              VPrintf4 ( "        qsort [0x%x, 0x%x]   "
-                        "done %d   this %d\n",
-                        ss, j, numQSorted, hi - lo + 1 );
+              VPrintf4 ( "        qsort [0x%x, 0x%x]   done %d   this %d\n", ss, j, numQSorted, hi - lo + 1 );
             }
-            mainQSort3 (
-                        ptr, block, quadrant, nblock,
-                        lo, hi, BZ_N_RADIX, budget
-                        );
+            mainQSort3 ( ptr, block, quadrant, nblock, lo, hi, BZ_N_RADIX, budget );
             numQSorted += (hi - lo + 1);
-            if (*budget < 0) return;
+            if (*budget < 0) {
+              return;
+            }
           }
         }
         ftab[sb] |= SETMASK;
@@ -1131,8 +1124,7 @@ static void mainSort ( UInt32* ptr,
               Necessity for this case is demonstrated by compressing
               a sequence of approximately 48.5 million of character
               251; 1.0.0/1.0.1 will then die here. */
-             (copyStart[ss] == 0 && copyEnd[ss] == nblock-1),
-             1007 )
+             (copyStart[ss] == 0 && copyEnd[ss] == nblock-1), 1007 )
     
     for (j = 0; j <= 255; j++) {
       ftab[(j << 8) + ss] |= SETMASK;
@@ -1202,8 +1194,7 @@ static void mainSort ( UInt32* ptr,
   }
   
   if (verb >= 4) {
-    VPrintf3 ( "        %d pointers, %d sorted, %d scanned\n",
-              nblock, numQSorted, nblock - numQSorted );
+    VPrintf3 ( "        %d pointers, %d sorted, %d scanned\n", nblock, numQSorted, nblock - numQSorted );
   }
 }
 
@@ -1270,16 +1261,11 @@ void BZ2_blockSort ( EState* s ) {
     
     mainSort ( ptr, block, quadrant, ftab, nblock, verb, &budget );
     if (verb >= 3) {
-      VPrintf3 ( "      %d work, %d block, ratio %5.2f\n",
-                budgetInit - budget,
-                nblock,
-                (float)(budgetInit - budget) /
-                (float)(nblock==0 ? 1 : nblock) );
+      VPrintf3 ( "      %d work, %d block, ratio %5.2f\n", budgetInit - budget, nblock, (float)(budgetInit - budget) / (float)(nblock==0 ? 1 : nblock) );
     }
     if (budget < 0) {
       if (verb >= 2) {
-        VPrintf0 ( "    too repetitive; using fallback"
-                  " sorting algorithm\n" );
+        VPrintf0 ( "    too repetitive; using fallback sorting algorithm\n" );
       }
       fallbackSort ( s->arr1, s->arr2, ftab, nblock, verb );
     }

@@ -35,19 +35,19 @@
 
 /*---------------------------------------------------*/
 void BZ2_bsInitWrite ( EState* s ) {
-   s->bsLive = 0;
-   s->bsBuff = 0;
+  s->bsLive = 0;
+  s->bsBuff = 0;
 }
 
 
 /*---------------------------------------------------*/
 static void bsFinishWrite ( EState* s ) {
-   while (s->bsLive > 0) {
-      s->zbits[s->numZ] = (UChar)(s->bsBuff >> 24);
-      s->numZ += 1;
-      s->bsBuff <<= 8;
-      s->bsLive -= 8;
-   }
+  while (s->bsLive > 0) {
+    s->zbits[s->numZ] = (UChar)(s->bsBuff >> 24);
+    s->numZ += 1;
+    s->bsBuff <<= 8;
+    s->bsLive -= 8;
+  }
 }
 
 
@@ -148,7 +148,10 @@ static void generateMTFValues ( EState* s ) {
   for (i = 0; i < s->nblock; i++) {
     UChar ll_i;
     AssertD ( wr <= i, "generateMTFValues(1)" );
-    j = ptr[i]-1; if (j < 0) j += s->nblock;
+    j = ptr[i]-1;
+    if (j < 0) {
+      j += s->nblock;
+    }
     ll_i = s->unseqToSeq[block[j]];
     AssertD ( ll_i < s->nInUse, "generateMTFValues(2a)" );
     
@@ -172,7 +175,7 @@ static void generateMTFValues ( EState* s ) {
             break;
           }
           zPend = (zPend - 2) / 2;
-        };
+        }
         zPend = 0;
       }
       {
@@ -207,8 +210,10 @@ static void generateMTFValues ( EState* s ) {
         mtfv[wr] = BZ_RUNB;
         wr += 1;
         s->mtfFreq[BZ_RUNB] += 1;
-      } else {
-        mtfv[wr] = BZ_RUNA; wr += 1;
+      }
+      else {
+        mtfv[wr] = BZ_RUNA;
+        wr += 1;
         s->mtfFreq[BZ_RUNA] += 1;
       }
       if (zPend < 2) {
@@ -253,9 +258,7 @@ static void sendMTFValues ( EState* s ) {
   UInt16* mtfv = s->mtfv;
   
   if (s->verbosity >= 3) {
-    VPrintf3( "      %d in block, %d after MTF & 1-2 coding, "
-             "%d+2 syms in use\n",
-             s->nblock, s->nMTF, s->nInUse );
+    VPrintf3( "      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n", s->nblock, s->nMTF, s->nInUse );
   }
   
   alphaSize = s->nInUse+2;
@@ -453,7 +456,7 @@ static void sendMTFValues ( EState* s ) {
       pos[0] = tmp;
       s->selectorMtf[i] = j;
     }
-  };
+  }
   
   /*--- Assign actual codes for the tables. --*/
   for (t = 0; t < nGroups; t++) {
@@ -494,7 +497,7 @@ static void sendMTFValues ( EState* s ) {
       }
     }
     
-    for (i = 0; i < 16; i++)
+    for (i = 0; i < 16; i++) {
       if (inUse16[i]) {
         for (j = 0; j < 16; j++) {
           if (s->inUse[i * 16 + j]) {
@@ -505,6 +508,7 @@ static void sendMTFValues ( EState* s ) {
           }
         }
       }
+    }
     
     if (s->verbosity >= 3) {
       VPrintf1( "      bytes: mapping %d, ", s->numZ-nBytes );
