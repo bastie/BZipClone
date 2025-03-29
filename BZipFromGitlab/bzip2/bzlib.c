@@ -38,7 +38,6 @@
 
 
 /*---------------------------------------------------*/
-#ifndef BZ_NO_STDIO
 void BZ2_bz__AssertH__fail ( int errcode ) {
   fprintf(stderr,
           "\n\nbzip2/libbzip2: internal error number %d.\n"
@@ -84,7 +83,6 @@ void BZ2_bz__AssertH__fail ( int errcode ) {
   
   exit(3);
 }
-#endif
 
 
 /*---------------------------------------------------*/
