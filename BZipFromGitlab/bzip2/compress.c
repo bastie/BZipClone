@@ -52,23 +52,16 @@ static void bsFinishWrite ( EState* s ) {
 
 
 /*---------------------------------------------------*/
-#define bsNEEDW(nz)                           \
-{                                             \
-   while (s->bsLive >= 8) {                   \
-      s->zbits[s->numZ]                       \
-         = (UChar)(s->bsBuff >> 24);          \
-      s->numZ += 1;                              \
-      s->bsBuff <<= 8;                        \
-      s->bsLive -= 8;                         \
-   }                                          \
-}
-
-
-/*---------------------------------------------------*/
 static inline void bsW ( EState* s, Int32 n, UInt32 v ) {
-   bsNEEDW ( n );
-   s->bsBuff |= (v << (32 - s->bsLive - n));
-   s->bsLive += n;
+  while (s->bsLive >= 8) {
+    s->zbits[s->numZ]
+    = (UChar)(s->bsBuff >> 24);
+    s->numZ += 1;
+    s->bsBuff <<= 8;
+    s->bsLive -= 8;
+  }
+  s->bsBuff |= (v << (32 - s->bsLive - n));
+  s->bsLive += n;
 }
 
 
@@ -719,7 +712,7 @@ void BZ2_compressBlock ( EState* status, Bool is_last_block ) {
      so as to maintain backwards compatibility with
      older versions of bzip2.
      --*/
-    bsW(status,1,0);
+    bsW (status, 1, 0);
     
     bsW ( status, 24, status->origPtr );
     generateMTFValues ( status );
@@ -741,7 +734,6 @@ void BZ2_compressBlock ( EState* status, Bool is_last_block ) {
     bsFinishWrite ( status );
   }
 }
-
 
 /*-------------------------------------------------------------*/
 /*--- end                                        compress.c ---*/

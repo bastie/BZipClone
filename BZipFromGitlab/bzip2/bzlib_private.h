@@ -76,20 +76,6 @@ extern void BZ2_bz__AssertH__fail ( int errcode );
 #define VPrintf5(zf,za1,za2,za3,za4,za5) \
    fprintf(stderr,zf,za1,za2,za3,za4,za5)
 
-#else
-
-extern void bz_internal_error ( int errcode );
-
-#define AssertH(cond,errcode) \
-   { if (!(cond)) bz_internal_error ( errcode ); }
-#define AssertD(cond,msg)                do { } while (0)
-#define VPrintf0(zf)                     do { } while (0)
-#define VPrintf1(zf,za1)                 do { } while (0)
-#define VPrintf2(zf,za1,za2)             do { } while (0)
-#define VPrintf3(zf,za1,za2,za3)         do { } while (0)
-#define VPrintf4(zf,za1,za2,za3,za4)     do { } while (0)
-#define VPrintf5(zf,za1,za2,za3,za4,za5) do { } while (0)
-
 #endif
 
 
@@ -174,12 +160,12 @@ typedef enum {
   BZ_MODUS_FINISHING = 4
 } BZ_MODUS;
 
-#define BZ_S_OUTPUT    1
-#define BZ_S_INPUT     2
+static const int BZ_S_OUTPUT = 1;
+static const int BZ_S_INPUT = 2;
 
-#define BZ_N_RADIX 2
-#define BZ_N_QSORT 12
-#define BZ_N_SHELL 18
+static const int BZ_N_RADIX = 2;
+static const int BZ_N_QSORT = 12;
+static const int BZ_N_SHELL = 18;
 #define BZ_N_OVERSHOOT (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2)
 
 
@@ -275,57 +261,57 @@ extern void BZ2_hbMakeCodeLengths ( UChar*, Int32*, Int32, Int32 );
 
 /*-- states for decompression. --*/
 
-#define BZ_X_IDLE        1
-#define BZ_X_OUTPUT      2
+static const int  BZ_X_IDLE       = 1;
+static const int  BZ_X_OUTPUT     = 2;
 
-#define BZ_X_MAGIC_1     10
-#define BZ_X_MAGIC_2     11
-#define BZ_X_MAGIC_3     12
-#define BZ_X_MAGIC_4     13
-#define BZ_X_BLKHDR_1    14
-#define BZ_X_BLKHDR_2    15
-#define BZ_X_BLKHDR_3    16
-#define BZ_X_BLKHDR_4    17
-#define BZ_X_BLKHDR_5    18
-#define BZ_X_BLKHDR_6    19
-#define BZ_X_BCRC_1      20
-#define BZ_X_BCRC_2      21
-#define BZ_X_BCRC_3      22
-#define BZ_X_BCRC_4      23
-#define BZ_X_RANDBIT     24
-#define BZ_X_ORIGPTR_1   25
-#define BZ_X_ORIGPTR_2   26
-#define BZ_X_ORIGPTR_3   27
-#define BZ_X_MAPPING_1   28
-#define BZ_X_MAPPING_2   29
-#define BZ_X_SELECTOR_1  30
-#define BZ_X_SELECTOR_2  31
-#define BZ_X_SELECTOR_3  32
-#define BZ_X_CODING_1    33
-#define BZ_X_CODING_2    34
-#define BZ_X_CODING_3    35
-#define BZ_X_MTF_1       36
-#define BZ_X_MTF_2       37
-#define BZ_X_MTF_3       38
-#define BZ_X_MTF_4       39
-#define BZ_X_MTF_5       40
-#define BZ_X_MTF_6       41
-#define BZ_X_ENDHDR_2    42
-#define BZ_X_ENDHDR_3    43
-#define BZ_X_ENDHDR_4    44
-#define BZ_X_ENDHDR_5    45
-#define BZ_X_ENDHDR_6    46
-#define BZ_X_CCRC_1      47
-#define BZ_X_CCRC_2      48
-#define BZ_X_CCRC_3      49
-#define BZ_X_CCRC_4      50
+static const int  BZ_X_MAGIC_1    = 10;
+static const int  BZ_X_MAGIC_2    = 11;
+static const int  BZ_X_MAGIC_3    = 12;
+static const int  BZ_X_MAGIC_4    = 13;
+static const int  BZ_X_BLKHDR_1   = 14;
+static const int  BZ_X_BLKHDR_2   = 15;
+static const int  BZ_X_BLKHDR_3   = 16;
+static const int  BZ_X_BLKHDR_4   = 17;
+static const int  BZ_X_BLKHDR_5   = 18;
+static const int  BZ_X_BLKHDR_6   = 19;
+static const int  BZ_X_BCRC_1     = 20;
+static const int  BZ_X_BCRC_2     = 21;
+static const int  BZ_X_BCRC_3     = 22;
+static const int  BZ_X_BCRC_4     = 23;
+static const int  BZ_X_RANDBIT    = 24;
+static const int  BZ_X_ORIGPTR_1  = 25;
+static const int  BZ_X_ORIGPTR_2  = 26;
+static const int  BZ_X_ORIGPTR_3  = 27;
+static const int  BZ_X_MAPPING_1  = 28;
+static const int  BZ_X_MAPPING_2  = 29;
+static const int  BZ_X_SELECTOR_1 = 30;
+static const int  BZ_X_SELECTOR_2 = 31;
+static const int  BZ_X_SELECTOR_3 = 32;
+static const int  BZ_X_CODING_1   = 33;
+static const int  BZ_X_CODING_2   = 34;
+static const int  BZ_X_CODING_3   = 35;
+static const int  BZ_X_MTF_1      = 36;
+static const int  BZ_X_MTF_2      = 37;
+static const int  BZ_X_MTF_3      = 38;
+static const int  BZ_X_MTF_4      = 39;
+static const int  BZ_X_MTF_5      = 40;
+static const int  BZ_X_MTF_6      = 41;
+static const int  BZ_X_ENDHDR_2   = 42;
+static const int  BZ_X_ENDHDR_3   = 43;
+static const int  BZ_X_ENDHDR_4   = 44;
+static const int  BZ_X_ENDHDR_5   = 45;
+static const int  BZ_X_ENDHDR_6   = 46;
+static const int  BZ_X_CCRC_1     = 47;
+static const int  BZ_X_CCRC_2     = 48;
+static const int  BZ_X_CCRC_3     = 49;
+static const int  BZ_X_CCRC_4     = 50;
 
 
 
 /*-- Constants for the fast MTF decoder. --*/
 
-#define MTFA_SIZE 4096
-#define MTFL_SIZE 16
+static const int MTFA_SIZE = 4096;
+static const int MTFL_SIZE = 16;
 
 
 
