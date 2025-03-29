@@ -24,7 +24,7 @@
    README file.
 
    This program is released under the terms of the license contained
-   in the file LICENSE.
+   in the file COPYING.
    ------------------------------------------------------------------ */
 
 

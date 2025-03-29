@@ -16,13 +16,13 @@
    README file.
 
    This program is released under the terms of the license contained
-   in the file LICENSE.
+   in the file COPYING.
    ------------------------------------------------------------------ */
 
 
 #include <stdio.h>
 
-int main () {
+int main (void) {
    int i;
   for (i = 0; i < 48500000 ; i++) {
     putchar(251);
