@@ -1259,8 +1259,12 @@ void BZ2_blockSort ( EState* s ) {
      resulting compressed stream is now the same regardless
      of whether or not we use the main sort or fallback sort.
      */
-    if (wfact < 1  ) wfact = 1;
-    if (wfact > 100) wfact = 100;
+    if (wfact < 1  ) {
+      wfact = 1;
+    }
+    if (wfact > 100) {
+      wfact = 100;
+    }
     budgetInit = nblock * ((wfact-1) / 3);
     budget = budgetInit;
     

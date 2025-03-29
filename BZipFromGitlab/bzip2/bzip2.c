@@ -853,13 +853,13 @@ errhandler:
  Diese Funktion aktualisiert den globalen Exit-Statuscode der Anwendung,
  falls der neue Wert größer ist als der aktuell gespeicherte Wert.
  
- @param newExitValue Der neue Exit-Statuscode, der gesetzt werden soll.
+ @param newExitReturnCode Der neue Exit-Statuscode, der gesetzt werden soll.
  
  @discussion
- Die Funktion vergleicht den übergebenen `newExitValue` mit dem aktuell
- gespeicherten `exitValue`. Wenn `newExitValue` größer ist, wird er
- als neuer `exitValue` gespeichert. Andernfalls bleibt der aktuelle
- `exitValue` unverändert.
+ Die Funktion vergleicht den übergebenen `newExitReturnCode` mit dem aktuell
+ gespeicherten `exitReturnCode`. Wenn `newExitReturnCode` größer ist, wird er
+ als neuer `exitReturnCode` gespeichert. Andernfalls bleibt der aktuelle
+ `exitReturnCode` unverändert.
  
  @note
  Diese Funktion dient dazu, den höchsten aufgetretenen Fehlercode während

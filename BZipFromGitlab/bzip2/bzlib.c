@@ -115,7 +115,43 @@ static void default_bzfree ( void* opaque, void* addr ) {
 }
 
 
-/*---------------------------------------------------*/
+/** (KI generiert)
+ * @brief Bereitet die Kompressionsstruktur für die Verarbeitung eines neuen Datenblocks vor.
+ *
+ * Diese Funktion initialisiert verschiedene Felder der `EState`-Struktur, um den Zustand
+ * für die Komprimierung eines neuen Eingabeblocks vorzubereiten. Dazu gehören das
+ * Zurücksetzen der Blockgröße, der Anzahl der komprimierten Bytes, der Ausgabeposition
+ * und der Block-CRC. Außerdem wird das `inUse`-Array zurückgesetzt, um die Information
+ * über die im vorherigen Block verwendeten Bytes zu löschen, und die Blocknummer wird
+ * inkrementiert.
+ *
+ * @param s Ein Zeiger auf die `EState`-Struktur, die für die Kompression verwendet wird.
+ * Diese Struktur enthält alle relevanten Zustandsinformationen für den
+ * bzip2-Kompressionsprozess.
+ *
+ * @details
+ * Die Funktion führt folgende Schritte aus:
+ *
+ * - Setzt `s->nblock` (Größe des aktuellen Eingabeblocks) auf 0.
+ *
+ * - Setzt `s->numZ` (Anzahl der komprimierten Bytes für den aktuellen Block) auf 0.
+ *
+ * - Setzt `s->state_out_pos` (aktuelle Position im Ausgabepuffer des Blocks) auf 0.
+ *
+ * - Initialisiert `s->blockCRC` (CRC-Prüfsumme des aktuellen Blocks) mit `BZ_INITIALISE_CRC`.
+ *
+ * - Setzt alle Elemente des `s->inUse`-Arrays (Markierung verwendeter Bytes) auf `False`.
+ *
+ * - Inkrementiert `s->blockNo` (fortlaufende Blocknummer).
+ *
+ * Diese Initialisierung ist entscheidend, um sicherzustellen, dass die Komprimierung jedes
+ * neuen Datenblocks mit einem sauberen Zustand beginnt und keine Restinformationen
+ * aus vorherigen Blöcken die aktuelle Verarbeitung beeinflussen.
+ *
+ * @note Diese Funktion sollte aufgerufen werden, bevor mit dem Füllen der `block`-
+ * oder anderer relevanter Felder der `EState`-Struktur für einen neuen
+ * Kompressionsblock begonnen wird.
+ */
 static void prepare_new_block ( EState* s ) {
   Int32 i;
   s->nblock = 0;
