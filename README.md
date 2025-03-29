@@ -3,15 +3,14 @@ Bzip2
 
 This project is a macOS specific clone of [GitLab.com](https://gitlab.com/bzip2/bzip2).
 
-
 This is Bzip2/libbz2; a program and library for lossless, block-sorting data
 compression.
 
-This document pertains to the Bzip2 feature development effort hosted on
-[GitLab.com](https://gitlab.com/bzip2/bzip2).
-
 The documentation here may differ from that on the Bzip2 1.0.x project page
-maintained by Mark Wielaard on[sourceware.org](https://sourceware.org/bzip2/).
+maintained by Mark Wielaard on [sourceware.org](https://sourceware.org/bzip2/).
+
+The document of the Bzip2 feature development effort hosted on
+[GitLab.com](https://gitlab.com/bzip2/bzip2) differ from this project.
 
 Copyright (C) 1996-2010 Julian Seward <jseward@acm.org>
 
@@ -27,40 +26,22 @@ This program is released under the terms of the license contained in the
 
 ------------------------------------------------------------------
 
-This version is fully compatible with the previous public releases.
+This version is not fully compatible with the previous public releases.
 
-Complete documentation is available in Postscript form (manual.ps),
-PDF (manual.pdf) or HTML (manual.html).  A plain-text version of the
+A documentation is available in a plain-text version of the
 manual page is available as bzip2.txt.
-
-## Community Code of Conduct
-
-There is a code of conduct for contributors to Bzip2/libbz2.
-Please see the [`code-of-conduct.md`](code-of-conduct.md) file.
 
 ## Contributing to Bzip2's development
 
-The Bzip2 project is hosted on GitLab for feature development work.
-It can be found at https://gitlab.com/bzip2/bzip2
+This Bzip2 project is hosted on GitHub for specific macOS development work.
+It can be found at https://github.com/bastie/BZipClone.
 
-Changes to be included in the next feature version are committed to the
-`master` branch.
-
-Feature releases are maintained in `release/*` branches.
-
-Long-term feature and experimental development will occur in feature branches.
-*Feature branches are unstable.* Feature branches may be rebased and force-
-pushed on occasion to keep them up-to-date and to resolve merge conflicts.
-
-The `rustify` branch is a feature branch that represents an effort to
-gradually port Bzip2 to [Rust](https://www.rust-lang.org).
 
 ## Report a Bug
 
-Please report bugs via [GitLab Issues](https://gitlab.com/bzip2/bzip2/issues).
+Please report bugs via [GitHub Issues](https://github.com/bastie/BZipClone/issues).
 
-Before you create a new issue, please verify that no one else has already
-reported the same issue.
+Before you create a new issue, please verify that no one else has already reported the same issue.
 
 ## Compiling Bzip2 and libbz2
 
