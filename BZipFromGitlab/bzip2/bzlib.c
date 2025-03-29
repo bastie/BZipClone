@@ -1865,23 +1865,22 @@ void BZ2_bzclose (BZFILE* b) {
   int bzerr;
   FILE *fp;
   
-  if (b==NULL) {
-    return;
-  }
-  fp = ((bzFile *)b)->handle;
-  if (((bzFile*)b)->writing) {
-    BZ2_bzWriteClose(&bzerr,b,0,NULL,NULL);
-    if(bzerr != BZ_OK) {
-      BZ2_bzWriteClose(NULL,b,1,NULL,NULL);
+  if (NULL != b) {
+    fp = ((bzFile *)b)->handle;
+    if (((bzFile*)b)->writing) {
+      BZ2_bzWriteClose(&bzerr,b,0,NULL,NULL);
+      if(bzerr != BZ_OK) {
+        BZ2_bzWriteClose(NULL,b,1,NULL,NULL);
+      }
     }
-  }
-  else {
-    BZ2_bzReadClose(&bzerr,b);
-  }
-  // wenn der Dateizeiger nicht auf die Standard-Eingabe zeigt und wenn der Dateizeiger nicht auf Standard-Ausgabe zeigt
-  if (fp!=stdin && fp!=stdout) {
-    // Schliesse die Datei hinter dem Dateizeiger
-    fclose(fp);
+    else {
+      BZ2_bzReadClose(&bzerr,b);
+    }
+    // wenn der Dateizeiger nicht auf die Standard-Eingabe zeigt und wenn der Dateizeiger nicht auf Standard-Ausgabe zeigt
+    if (fp!=stdin && fp!=stdout) {
+      // Schliesse die Datei hinter dem Dateizeiger
+      fclose(fp);
+    }
   }
 }
 
