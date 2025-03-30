@@ -384,214 +384,39 @@ static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nb
 
 /*---------------------------------------------*/
 static inline Bool mainGtU ( UInt32 i1, UInt32 i2, UChar* block, UInt16* quadrant, UInt32 nblock, Int32* budget ) {
-  Int32  k;
-  UChar  c1, c2;
+  Int32 k;
+  UChar c1, c2;
   UInt16 s1, s2;
   
-  /* 1 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
+  // Gemini schafte diesen loop-enroll halbwegs rückgängig zu machen
+  for (int i = 0; i < 12; ++i) {
+    c1 = block[i1++];
+    c2 = block[i2++];
+    if (c1 != c2) {
+      return (c1 > c2);
+    }
   }
-  i1 += 1;
-  i2 += 1;
-  /* 2 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 3 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 4 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 5 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 6 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 7 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 8 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 9 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 10 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 11 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
-  /* 12 */
-  c1 = block[i1];
-  c2 = block[i2];
-  if (c1 != c2) {
-    return (c1 > c2);
-  }
-  i1 += 1;
-  i2 += 1;
   
   k = nblock + 8;
   
+  // hier scheiterte Gemini aber DeepSeek konnte es im zweiten Anlauf machen - und genau deshalb ist moderne Programmierung TDD
   do {
-    /* 1 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
+    for (int chunk = 0; chunk < 8; chunk++) {
+      c1 = block[i1];
+      c2 = block[i2];
+      if (c1 != c2) {
+        return (c1 > c2);
+      }
+      
+      s1 = quadrant[i1];
+      s2 = quadrant[i2];
+      if (s1 != s2) {
+        return (s1 > s2);
+      }
+      
+      i1++;
+      i2++;
     }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
-    /* 2 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
-    }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
-    /* 3 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
-    }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
-    /* 4 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
-    }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
-    /* 5 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
-    }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
-    /* 6 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
-    }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
-    /* 7 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
-    }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
-    /* 8 */
-    c1 = block[i1];
-    c2 = block[i2];
-    if (c1 != c2) {
-      return (c1 > c2);
-    }
-    s1 = quadrant[i1];
-    s2 = quadrant[i2];
-    if (s1 != s2) {
-      return (s1 > s2);
-    }
-    i1 += 1;
-    i2 += 1;
     
     if (i1 >= nblock) {
       i1 -= nblock;
@@ -602,8 +427,7 @@ static inline Bool mainGtU ( UInt32 i1, UInt32 i2, UChar* block, UInt16* quadran
     
     k -= 8;
     (*budget) -= 1;
-  }
-  while (k >= 0);
+  } while (k >= 0);
   
   return False;
 }
