@@ -86,9 +86,8 @@ static void bsPutUChar ( EState* s, UChar c ) {
 
 /*---------------------------------------------------*/
 static void makeMaps_e ( EState* s ) {
-  Int32 i;
   s->nInUse = 0;
-  for (i = 0; i < 256; i++) {
+  for (Int32 i = 0; i < 256; i++) {
     if (s->inUse[i]) {
       s->unseqToSeq[i] = s->nInUse;
       s->nInUse += 1;
@@ -100,8 +99,7 @@ static void makeMaps_e ( EState* s ) {
 /*---------------------------------------------------*/
 static void generateMoveToFrontValues ( EState* s ) {
   UChar   yy[256];
-  Int32   i;
-  Int32   j;
+  //Int32   precedingIndexOfBurrowWheelerTransformation;
   Int32   zPend;
   Int32   wr;
   Int32   EOB;
@@ -135,25 +133,25 @@ static void generateMoveToFrontValues ( EState* s ) {
   makeMaps_e ( s );
   EOB = s->nInUse+1;
   
-  for (i = 0; i <= EOB; i++) {
+  for (Int32 i = 0; i <= EOB; i++) {
     s->moveToFrontFreq[i] = 0;
   }
   
   wr = 0;
   zPend = 0;
-  for (i = 0; i < s->nInUse; i++) {
+  for (Int32 i = 0; i < s->nInUse; i++) {
     yy[i] = (UChar) i;
   }
   
-  for (i = 0; i < s->nblock; i++) {
+  for (Int32 i = 0; i < s->nblock; i++) {
     UChar ll_i;
-    AssertD ( wr <= i, "generateMTFValues(1)" );
-    j = ptr[i]-1;
-    if (j < 0) {
-      j += s->nblock;
+    AssertD ( wr <= i, "generateMoveToFrontValues(1)" );
+    Int32 precedingIndexOfBurrowWheelerTransformation = ptr[i]-1;
+    if (precedingIndexOfBurrowWheelerTransformation < 0) {
+      precedingIndexOfBurrowWheelerTransformation += s->nblock;
     }
-    ll_i = s->unseqToSeq[block[j]];
-    AssertD ( ll_i < s->nInUse, "generateMTFValues(2a)" );
+    ll_i = s->unseqToSeq[block[precedingIndexOfBurrowWheelerTransformation]];
+    AssertD ( ll_i < s->nInUse, "generateMoveToFrontValues(2a)" );
     
     if (yy[0] == ll_i) {
       zPend += 1;
@@ -194,10 +192,10 @@ static void generateMoveToFrontValues ( EState* s ) {
           *ryy_j = rtmp2;
         };
         yy[0] = rtmp;
-        j = (int) (ryy_j - &(yy[0]));
-        mtfv[wr] = j+1;
+        precedingIndexOfBurrowWheelerTransformation = (int) (ryy_j - &(yy[0]));
+        mtfv[wr] = precedingIndexOfBurrowWheelerTransformation+1;
         wr += 1;
-        s->moveToFrontFreq[j+1] += 1;
+        s->moveToFrontFreq[precedingIndexOfBurrowWheelerTransformation+1] += 1;
       }
       
     }
@@ -445,9 +443,7 @@ static void sendMoveToFrontValues ( EState* s ) {
   
   
   AssertH( nGroups < 8, 3002 );
-  AssertH( nSelectors < 32768 &&
-          nSelectors <= BZ_MAX_SELECTORS,
-          3003 );
+  AssertH( nSelectors < 32768 && nSelectors <= BZ_MAX_SELECTORS, 3003 );
   
   
   /*--- Compute MTF values for the selectors. ---*/
