@@ -65,10 +65,10 @@ MaybeUInt64 bytesIn  = 0;
 /*--- Header bytes                                ---*/
 /*---------------------------------------------------*/
 
-#define BZ_HDR_B 0x42                         /* 'B' */
-#define BZ_HDR_Z 0x5a                         /* 'Z' */
-#define BZ_HDR_h 0x68                         /* 'h' */
-#define BZ_HDR_0 0x30                         /* '0' */
+static int const BZ_HDR_B = 0x42;  /* 'B' */
+static int const BZ_HDR_Z = 0x5a;  /* 'Z' */
+static int const BZ_HDR_h = 0x68;  /* 'h' */
+static int const BZ_HDR_0 = 0x30;  /* '0' */
 
 
 /*---------------------------------------------------*/

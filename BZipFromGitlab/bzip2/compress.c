@@ -98,7 +98,7 @@ static void makeMaps_e ( EState* s ) {
 
 
 /*---------------------------------------------------*/
-static void generateMTFValues ( EState* s ) {
+static void generateMoveToFrontValues ( EState* s ) {
   UChar   yy[256];
   Int32   i;
   Int32   j;
@@ -136,7 +136,7 @@ static void generateMTFValues ( EState* s ) {
   EOB = s->nInUse+1;
   
   for (i = 0; i <= EOB; i++) {
-    s->mtfFreq[i] = 0;
+    s->moveToFrontFreq[i] = 0;
   }
   
   wr = 0;
@@ -165,11 +165,11 @@ static void generateMTFValues ( EState* s ) {
           if (zPend & 1) {
             mtfv[wr] = BZ_RUNB;
             wr += 1;
-            s->mtfFreq[BZ_RUNB] += 1;
+            s->moveToFrontFreq[BZ_RUNB] += 1;
           } else {
             mtfv[wr] = BZ_RUNA;
             wr += 1;
-            s->mtfFreq[BZ_RUNA] += 1;
+            s->moveToFrontFreq[BZ_RUNA] += 1;
           }
           if (zPend < 2) {
             break;
@@ -197,7 +197,7 @@ static void generateMTFValues ( EState* s ) {
         j = (int) (ryy_j - &(yy[0]));
         mtfv[wr] = j+1;
         wr += 1;
-        s->mtfFreq[j+1] += 1;
+        s->moveToFrontFreq[j+1] += 1;
       }
       
     }
@@ -209,12 +209,12 @@ static void generateMTFValues ( EState* s ) {
       if (zPend & 1) {
         mtfv[wr] = BZ_RUNB;
         wr += 1;
-        s->mtfFreq[BZ_RUNB] += 1;
+        s->moveToFrontFreq[BZ_RUNB] += 1;
       }
       else {
         mtfv[wr] = BZ_RUNA;
         wr += 1;
-        s->mtfFreq[BZ_RUNA] += 1;
+        s->moveToFrontFreq[BZ_RUNA] += 1;
       }
       if (zPend < 2) {
         break;
@@ -226,9 +226,9 @@ static void generateMTFValues ( EState* s ) {
   
   mtfv[wr] = EOB;
   wr += 1;
-  s->mtfFreq[EOB] += 1;
+  s->moveToFrontFreq[EOB] += 1;
   
-  s->nMTF = wr;
+  s->nMoveToFront = wr;
 }
 
 
@@ -236,10 +236,20 @@ static void generateMTFValues ( EState* s ) {
 static const int BZ_LESSER_ICOST  = 0;
 static const int BZ_GREATER_ICOST = 15;
 
-static void sendMTFValues ( EState* s ) {
-  Int32 v; Int32 t; Int32 i; Int32 j; Int32 gs; Int32 ge; Int32 totc; Int32 bt; Int32 bc; Int32 iter;
-  Int32 nSelectors = 0; Int32 alphaSize; Int32 minLen; Int32 maxLen; Int32 selCtr;
-  Int32 nGroups; Int32 nBytes;
+static void sendMoveToFrontValues ( EState* s ) {
+  Int32 j;
+  Int32 gs;
+  Int32 ge;
+  Int32 totc;
+  Int32 bt;
+  Int32 bc;
+  Int32 nSelectors = 0;
+  Int32 alphaSize;
+  Int32 minLen;
+  Int32 maxLen;
+  Int32 selCtr;
+  Int32 nGroups;
+  Int32 nBytes;
   
   /*--
    UChar  len [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
@@ -258,31 +268,31 @@ static void sendMTFValues ( EState* s ) {
   UInt16* mtfv = s->mtfv;
   
   if (s->verbosity >= 3) {
-    VPrintf3( "      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n", s->nblock, s->nMTF, s->nInUse );
+    VPrintf3( "      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n", s->nblock, s->nMoveToFront, s->nInUse );
   }
   
   alphaSize = s->nInUse+2;
-  for (t = 0; t < BZ_N_GROUPS; t++) {
-    for (v = 0; v < alphaSize; v++) {
+  for (Int32 t = 0; t < BZ_N_GROUPS; t++) {
+    for (Int32 v = 0; v < alphaSize; v++) {
       s->len[t][v] = BZ_GREATER_ICOST;
     }
   }
   
   /*--- Decide how many coding tables to use ---*/
-  AssertH ( s->nMTF > 0, 3001 );
-  if (s->nMTF < 200)  {
+  AssertH ( s->nMoveToFront > 0, 3001 );
+  if (s->nMoveToFront < 200)  {
     nGroups = 2;
   }
   else {
-    if (s->nMTF < 600)  {
+    if (s->nMoveToFront < 600)  {
       nGroups = 3;
     }
     else {
-      if (s->nMTF < 1200) {
+      if (s->nMoveToFront < 1200) {
         nGroups = 4;
       }
       else {
-        if (s->nMTF < 2400) {
+        if (s->nMoveToFront < 2400) {
           nGroups = 5;
         }
         else {
@@ -294,10 +304,13 @@ static void sendMTFValues ( EState* s ) {
 
   /*--- Generate an initial set of coding tables ---*/
   {
-    Int32 nPart, remF, tFreq, aFreq;
+    Int32 nPart;
+    Int32 remF;
+    Int32 tFreq;
+    Int32 aFreq;
     
     nPart = nGroups;
-    remF  = s->nMTF;
+    remF  = s->nMoveToFront;
     gs = 0;
     while (nPart > 0) {
       tFreq = remF / nPart;
@@ -305,21 +318,21 @@ static void sendMTFValues ( EState* s ) {
       aFreq = 0;
       while (aFreq < tFreq && ge < alphaSize-1) {
         ge += 1;
-        aFreq += s->mtfFreq[ge];
+        aFreq += s->moveToFrontFreq[ge];
       }
       
       if (ge > gs
           && nPart != nGroups && nPart != 1
           && ((nGroups-nPart) % 2 == 1)) {
-        aFreq -= s->mtfFreq[ge];
+        aFreq -= s->moveToFrontFreq[ge];
         ge -= 1;
       }
       
       if (s->verbosity >= 3) {
-        VPrintf5( "      initial group %d, [%d .. %d], has %d syms (%4.1f%%)\n", nPart, gs, ge, aFreq, (100.0 * (float)aFreq) / (float)(s->nMTF) );
+        VPrintf5( "      initial group %d, [%d .. %d], has %d syms (%4.1f%%)\n", nPart, gs, ge, aFreq, (100.0 * (float)aFreq) / (float)(s->nMoveToFront) );
       }
       
-      for (v = 0; v < alphaSize; v++) {
+      for (Int32 v = 0; v < alphaSize; v++) {
         if (v >= gs && v <= ge) {
           s->len[nPart-1][v] = BZ_LESSER_ICOST;
         }
@@ -337,14 +350,14 @@ static void sendMTFValues ( EState* s ) {
   /*---
    Iterate up to BZ_N_ITERS times to improve the tables.
    ---*/
-  for (iter = 0; iter < BZ_N_ITERS; iter++) {
+  for (Int32 iter = 0; iter < BZ_N_ITERS; iter++) {
     
-    for (t = 0; t < nGroups; t++) {
+    for (Int32 t = 0; t < nGroups; t++) {
       fave[t] = 0;
     }
     
-    for (t = 0; t < nGroups; t++) {
-      for (v = 0; v < alphaSize; v++) {
+    for (Int32 t = 0; t < nGroups; t++) {
+      for (Int32 v = 0; v < alphaSize; v++) {
         s->rfreq[t][v] = 0;
       }
     }
@@ -354,7 +367,7 @@ static void sendMTFValues ( EState* s ) {
      the common case (nGroups == 6).
      ---*/
     if (nGroups == 6) {
-      for (v = 0; v < alphaSize; v++) {
+      for (Int32 v = 0; v < alphaSize; v++) {
         s->len_pack[v][0] = (s->len[1][v] << 16) | s->len[0][v];
         s->len_pack[v][1] = (s->len[3][v] << 16) | s->len[2][v];
         s->len_pack[v][2] = (s->len[5][v] << 16) | s->len[4][v];
@@ -367,25 +380,25 @@ static void sendMTFValues ( EState* s ) {
     while (True) {
       
       /*--- Set group start & end marks. --*/
-      if (gs >= s->nMTF) {
+      if (gs >= s->nMoveToFront) {
         break;
       }
       ge = gs + BZ_G_SIZE - 1;
-      if (ge >= s->nMTF) {
-        ge = s->nMTF-1;
+      if (ge >= s->nMoveToFront) {
+        ge = s->nMoveToFront-1;
       }
       
       /*--
        Calculate the cost of this group as coded
        by each of the coding tables.
        --*/
-      for (t = 0; t < nGroups; t++) {
+      for (Int32 t = 0; t < nGroups; t++) {
         cost[t] = 0;
       }
 
-      for (i = gs; i <= ge; i++) {
+      for (Int32 i = gs; i <= ge; i++) {
         UInt16 icv = mtfv[i];
-        for (t = 0; t < nGroups; t++) {
+        for (Int32 t = 0; t < nGroups; t++) {
           cost[t] += s->len[t][icv];
         }
       }
@@ -395,7 +408,7 @@ static void sendMTFValues ( EState* s ) {
        and record its identity in the selector table.
        --*/
       bc = 999999999; bt = -1;
-      for (t = 0; t < nGroups; t++) {
+      for (Int32 t = 0; t < nGroups; t++) {
         if (cost[t] < bc) {
           bc = cost[t];
           bt = t;
@@ -406,7 +419,7 @@ static void sendMTFValues ( EState* s ) {
       s->selector[nSelectors] = bt;
       nSelectors += 1;
       
-      for (i = gs; i <= ge; i++) {
+      for (Int32 i = gs; i <= ge; i++) {
         s->rfreq[bt][ mtfv[i] ] += 1;
       }
       
@@ -414,7 +427,7 @@ static void sendMTFValues ( EState* s ) {
     }
     if (s->verbosity >= 3) {
       VPrintf2 ( "      pass %d: size is %d, grp uses are ", iter+1, totc/8 );
-      for (t = 0; t < nGroups; t++) {
+      for (Int32 t = 0; t < nGroups; t++) {
         VPrintf1 ( "%d ", fave[t] );
       }
       VPrintf0 ( "\n" );
@@ -425,7 +438,7 @@ static void sendMTFValues ( EState* s ) {
      --*/
     /* maxLen was changed from 20 to 17 in bzip2-1.0.3.  See
      comment in huffman.c for details. */
-    for (t = 0; t < nGroups; t++) {
+    for (Int32 t = 0; t < nGroups; t++) {
       BZ2_hbMakeCodeLengths ( &(s->len[t][0]), &(s->rfreq[t][0]), alphaSize, 17 /*20*/ );
     }
   }
@@ -440,10 +453,10 @@ static void sendMTFValues ( EState* s ) {
   /*--- Compute MTF values for the selectors. ---*/
   {
     UChar pos[BZ_N_GROUPS]; UChar ll_i; UChar tmp2; UChar tmp;
-    for (i = 0; i < nGroups; i++) {
+    for (Int32 i = 0; i < nGroups; i++) {
       pos[i] = i;
     }
-    for (i = 0; i < nSelectors; i++) {
+    for (Int32 i = 0; i < nSelectors; i++) {
       ll_i = s->selector[i];
       j = 0;
       tmp = pos[j];
@@ -454,15 +467,15 @@ static void sendMTFValues ( EState* s ) {
         pos[j] = tmp2;
       }
       pos[0] = tmp;
-      s->selectorMtf[i] = j;
+      s->selectorMoveToFront[i] = j;
     }
   }
   
   /*--- Assign actual codes for the tables. --*/
-  for (t = 0; t < nGroups; t++) {
+  for (Int32 t = 0; t < nGroups; t++) {
     minLen = 32;
     maxLen = 0;
-    for (i = 0; i < alphaSize; i++) {
+    for (Int32 i = 0; i < alphaSize; i++) {
       if (s->len[t][i] > maxLen) {
         maxLen = s->len[t][i];
       }
@@ -478,7 +491,7 @@ static void sendMTFValues ( EState* s ) {
   /*--- Transmit the mapping table. ---*/
   {
     Bool inUse16[16];
-    for (i = 0; i < 16; i++) {
+    for (Int32 i = 0; i < 16; i++) {
       inUse16[i] = False;
       for (j = 0; j < 16; j++) {
         if (s->inUse[i * 16 + j]) {
@@ -488,7 +501,7 @@ static void sendMTFValues ( EState* s ) {
     }
     
     nBytes = s->numZ;
-    for (i = 0; i < 16; i++) {
+    for (Int32 i = 0; i < 16; i++) {
       if (inUse16[i]) {
         bsW(s,1,1);
       }
@@ -497,7 +510,7 @@ static void sendMTFValues ( EState* s ) {
       }
     }
     
-    for (i = 0; i < 16; i++) {
+    for (Int32 i = 0; i < 16; i++) {
       if (inUse16[i]) {
         for (j = 0; j < 16; j++) {
           if (s->inUse[i * 16 + j]) {
@@ -519,8 +532,8 @@ static void sendMTFValues ( EState* s ) {
   nBytes = s->numZ;
   bsW ( s, 3, nGroups );
   bsW ( s, 15, nSelectors );
-  for (i = 0; i < nSelectors; i++) {
-    for (j = 0; j < s->selectorMtf[i]; j++) {
+  for (Int32 i = 0; i < nSelectors; i++) {
+    for (j = 0; j < s->selectorMoveToFront[i]; j++) {
       bsW(s,1,1);
     }
     bsW(s,1,0);
@@ -532,10 +545,10 @@ static void sendMTFValues ( EState* s ) {
   /*--- Now the coding tables. ---*/
   nBytes = s->numZ;
   
-  for (t = 0; t < nGroups; t++) {
+  for (Int32 t = 0; t < nGroups; t++) {
     Int32 curr = s->len[t][0];
     bsW ( s, 5, curr );
-    for (i = 0; i < alphaSize; i++) {
+    for (Int32 i = 0; i < alphaSize; i++) {
       while (curr < s->len[t][i]) {
         bsW(s,2,2);
         curr += 1; /* 10 */
@@ -557,14 +570,14 @@ static void sendMTFValues ( EState* s ) {
   selCtr = 0;
   gs = 0;
   while (True) {
-    if (gs >= s->nMTF) break;
+    if (gs >= s->nMoveToFront) break;
     ge = gs + BZ_G_SIZE - 1;
-    if (ge >= s->nMTF) {
-      ge = s->nMTF-1;
+    if (ge >= s->nMoveToFront) {
+      ge = s->nMoveToFront-1;
     }
     AssertH ( s->selector[selCtr] < nGroups, 3006 );
     
-    for (i = gs; i <= ge; i++) {
+    for (Int32 i = gs; i <= ge; i++) {
       bsW ( s, s->len  [s->selector[selCtr]] [mtfv[i]], s->code [s->selector[selCtr]] [mtfv[i]] );
     }
     
@@ -631,8 +644,8 @@ void BZ2_compressBlock ( EState* status, Bool is_last_block ) {
     bsW (status, 1, 0);
     
     bsW ( status, 24, status->origPtr );
-    generateMTFValues ( status );
-    sendMTFValues ( status );
+    generateMoveToFrontValues ( status );
+    sendMoveToFrontValues ( status );
   }
   
   /*-- If this is the last block, add the stream trailer. --*/

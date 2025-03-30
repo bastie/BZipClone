@@ -339,7 +339,7 @@ Int32 BZ2_decompress ( DState* s )
          since they will never be used, but some implementations might
          "round up" the number of selectors, so just ignore those. */
         if (i < BZ_MAX_SELECTORS)
-          s->selectorMtf[i] = j;
+          s->selectorMoveToFront [i] = j;
       }
       if (nSelectors > BZ_MAX_SELECTORS)
         nSelectors = BZ_MAX_SELECTORS;
@@ -352,7 +352,7 @@ Int32 BZ2_decompress ( DState* s )
       }
       
       for (i = 0; i < nSelectors; i++) {
-        v = s->selectorMtf[i];
+        v = s->selectorMoveToFront [i];
         tmp = pos[v];
         while (v > 0) {
           pos[v] = pos[v-1];
@@ -427,13 +427,13 @@ Int32 BZ2_decompress ( DState* s )
       Int32 ii;
       Int32 jj;
       Int32 kk;
-      kk = MTFA_SIZE-1;
-      for (ii = 256 / MTFL_SIZE - 1; ii >= 0; ii--) {
-        for (jj = MTFL_SIZE-1; jj >= 0; jj--) {
-          s->mtfa[kk] = (UChar)(ii * MTFL_SIZE + jj);
+      kk = MOVE_TO_FRONT_A_SIZE-1;
+      for (ii = 256 / MOVE_TO_FRONT_L_SIZE - 1; ii >= 0; ii--) {
+        for (jj = MOVE_TO_FRONT_L_SIZE-1; jj >= 0; jj--) {
+          s->moveToFront_a[kk] = (UChar)(ii * MOVE_TO_FRONT_L_SIZE + jj);
           kk -= 1;
         }
-        s->mtfbase[ii] = kk + 1;
+        s->moveToFrontBase[ii] = kk + 1;
       }
     }
       /*-- end MTF init --*/
@@ -475,7 +475,7 @@ Int32 BZ2_decompress ( DState* s )
           while (nextSym == BZ_RUNA || nextSym == BZ_RUNB);
           
           es += 1;
-          uc = s->seqToUnseq[ s->mtfa[s->mtfbase[0]] ];
+          uc = s->seqToUnseq[ s->moveToFront_a[s->moveToFrontBase[0]] ];
           s->unzftab[uc] += es;
           
           if (s->smallDecompress)
@@ -511,50 +511,50 @@ Int32 BZ2_decompress ( DState* s )
             UInt32 nn;
             nn = (UInt32)(nextSym - 1);
             
-            if (nn < MTFL_SIZE) {
+            if (nn < MOVE_TO_FRONT_L_SIZE) {
               /* avoid general-case expense */
-              pp = s->mtfbase[0];
-              uc = s->mtfa[pp+nn];
+              pp = s->moveToFrontBase[0];
+              uc = s->moveToFront_a[pp+nn];
               while (nn > 3) {
                 Int32 z = pp+nn;
-                s->mtfa[(z)  ] = s->mtfa[(z)-1];
-                s->mtfa[(z)-1] = s->mtfa[(z)-2];
-                s->mtfa[(z)-2] = s->mtfa[(z)-3];
-                s->mtfa[(z)-3] = s->mtfa[(z)-4];
+                s->moveToFront_a[(z)  ] = s->moveToFront_a[(z)-1];
+                s->moveToFront_a[(z)-1] = s->moveToFront_a[(z)-2];
+                s->moveToFront_a[(z)-2] = s->moveToFront_a[(z)-3];
+                s->moveToFront_a[(z)-3] = s->moveToFront_a[(z)-4];
                 nn -= 4;
               }
               while (nn > 0) {
-                s->mtfa[(pp+nn)] = s->mtfa[(pp+nn)-1];
+                s->moveToFront_a[(pp+nn)] = s->moveToFront_a[(pp+nn)-1];
                 nn -= 1;
               }
-              s->mtfa[pp] = uc;
+              s->moveToFront_a[pp] = uc;
             } else {
               /* general case */
-              lno = nn / MTFL_SIZE;
-              off = nn % MTFL_SIZE;
-              pp = s->mtfbase[lno] + off;
-              uc = s->mtfa[pp];
-              while (pp > s->mtfbase[lno]) {
-                s->mtfa[pp] = s->mtfa[pp-1];
+              lno = nn / MOVE_TO_FRONT_L_SIZE;
+              off = nn % MOVE_TO_FRONT_L_SIZE;
+              pp = s->moveToFrontBase[lno] + off;
+              uc = s->moveToFront_a[pp];
+              while (pp > s->moveToFrontBase[lno]) {
+                s->moveToFront_a[pp] = s->moveToFront_a[pp-1];
                 pp -= 1;
               };
-              s->mtfbase[lno] += 1;
+              s->moveToFrontBase[lno] += 1;
               while (lno > 0) {
-                s->mtfbase[lno] -= 1;
-                s->mtfa[s->mtfbase[lno]]
-                = s->mtfa[s->mtfbase[lno-1] + MTFL_SIZE - 1];
+                s->moveToFrontBase[lno] -= 1;
+                s->moveToFront_a[s->moveToFrontBase[lno]]
+                = s->moveToFront_a[s->moveToFrontBase[lno-1] + MOVE_TO_FRONT_L_SIZE - 1];
                 lno -= 1;
               }
-              s->mtfbase[0] -= 1;
-              s->mtfa[s->mtfbase[0]] = uc;
-              if (s->mtfbase[0] == 0) {
-                kk = MTFA_SIZE-1;
-                for (ii = 256 / MTFL_SIZE-1; ii >= 0; ii--) {
-                  for (jj = MTFL_SIZE-1; jj >= 0; jj--) {
-                    s->mtfa[kk] = s->mtfa[s->mtfbase[ii] + jj];
+              s->moveToFrontBase[0] -= 1;
+              s->moveToFront_a[s->moveToFrontBase[0]] = uc;
+              if (s->moveToFrontBase[0] == 0) {
+                kk = MOVE_TO_FRONT_A_SIZE-1;
+                for (ii = 256 / MOVE_TO_FRONT_L_SIZE-1; ii >= 0; ii--) {
+                  for (jj = MOVE_TO_FRONT_L_SIZE-1; jj >= 0; jj--) {
+                    s->moveToFront_a[kk] = s->moveToFront_a[s->moveToFrontBase[ii] + jj];
                     kk -= 1;
                   }
-                  s->mtfbase[ii] = kk + 1;
+                  s->moveToFrontBase[ii] = kk + 1;
                 }
               }
             }

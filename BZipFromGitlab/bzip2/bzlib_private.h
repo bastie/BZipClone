@@ -46,13 +46,12 @@ static const unsigned char False = ((Bool)0);
 static const int BUFFER_SIZE = 5000;
 
 
-#ifndef BZ_NO_STDIO
-
 extern void BZ2_bz__AssertH__fail ( int errcode );
 #define AssertH(cond,errcode) \
    { if (!(cond)) BZ2_bz__AssertH__fail ( errcode ); }
 
 #if DEBUG
+//if debug
 #define AssertD(cond,msg) \
    { if (!(cond)) {       \
       fprintf ( stderr,   \
@@ -60,6 +59,7 @@ extern void BZ2_bz__AssertH__fail ( int errcode );
       exit(1); \
    }}
 #else
+// else debug
 #define AssertD(cond,msg) /* */
 #endif
 
@@ -76,8 +76,6 @@ extern void BZ2_bz__AssertH__fail ( int errcode );
 #define VPrintf5(zf,za1,za2,za3,za4,za5) \
    fprintf(stderr,zf,za1,za2,za3,za4,za5)
 
-#endif
-
 
 #define BZALLOC(nnn) (strm->bzalloc)(strm->opaque,(nnn),1)
 #define BZFREE(ppp)  (strm->bzfree)(strm->opaque,(ppp))
@@ -85,10 +83,10 @@ extern void BZ2_bz__AssertH__fail ( int errcode );
 
 /*-- Header bytes. --*/
 
-#define BZ_HDR_B 0x42   /* 'B' */
-#define BZ_HDR_Z 0x5a   /* 'Z' */
-#define BZ_HDR_h 0x68   /* 'h' */
-#define BZ_HDR_0 0x30   /* '0' */
+static int const BZ_HDR_B = 0x42;  /* 'B' */
+static int const BZ_HDR_Z = 0x5a;  /* 'Z' */
+static int const BZ_HDR_h = 0x68;  /* 'h' */
+static int const BZ_HDR_0 = 0x30;  /* '0' */
 
 /*-- Constants for the back end. --*/
 
@@ -228,11 +226,11 @@ typedef struct {
   Int32    blockNo;
   Int32    blockSize100k;
   
-  /* stuff for coding the MTF values */
-  Int32    nMTF;
-  Int32    mtfFreq    [BZ_MAX_ALPHA_SIZE];
-  UChar    selector   [BZ_MAX_SELECTORS];
-  UChar    selectorMtf[BZ_MAX_SELECTORS];
+  /* stuff for coding the MoveToFront values */
+  Int32    nMoveToFront;
+  Int32    moveToFrontFreq     [BZ_MAX_ALPHA_SIZE];
+  UChar    selector            [BZ_MAX_SELECTORS];
+  UChar    selectorMoveToFront [BZ_MAX_SELECTORS];
   
   UChar    len     [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
   Int32    code    [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
@@ -307,12 +305,10 @@ static const int  BZ_X_CCRC_3     = 49;
 static const int  BZ_X_CCRC_4     = 50;
 
 
+/*-- Constants for the fast MoveToFront decoder. --*/
 
-/*-- Constants for the fast MTF decoder. --*/
-
-static const int MTFA_SIZE = 4096;
-static const int MTFL_SIZE = 16;
-
+static const int MOVE_TO_FRONT_A_SIZE = 4096;
+static const int MOVE_TO_FRONT_L_SIZE = 16;
 
 
 /*-- Structure holding all the decompression-side stuff. --*/
@@ -368,11 +364,11 @@ typedef struct {
   Bool     inUse16[16];
   UChar    seqToUnseq[256];
   
-  /* for decoding the MTF values */
-  UChar    mtfa   [MTFA_SIZE];
-  Int32    mtfbase[256 / MTFL_SIZE];
+  /* for decoding the MoveToFront values */
+  UChar    moveToFront_a   [MOVE_TO_FRONT_A_SIZE];
+  Int32    moveToFrontBase[256 / MOVE_TO_FRONT_L_SIZE];
   UChar    selector   [BZ_MAX_SELECTORS];
-  UChar    selectorMtf[BZ_MAX_SELECTORS];
+  UChar    selectorMoveToFront [BZ_MAX_SELECTORS];
   UChar    len  [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
   
   Int32    limit  [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];

@@ -159,12 +159,31 @@ void BZ2_hbMakeCodeLengths ( UChar *len, Int32 *freq, Int32 alphaSize, Int32 max
 }
 
 
-/*---------------------------------------------------*/
-void BZ2_hbAssignCodes ( Int32 *code,
-                         UChar *length,
-                         Int32 minLen,
-                         Int32 maxLen,
-                        Int32 alphaSize ) {
+/** (KI-generated)
+ * 
+ * @brief Weist jedem Symbol in einem Alphabet Huffman-Codes basierend auf seinen Codelängen zu.
+ *
+ * Diese Funktion iteriert durch die gegebenen Codelängen (`length`) von der minimalen
+ * Länge (`minLen`) bis zur maximalen Länge (`maxLen`). Für jede Länge werden alle
+ * Symbole im Alphabet (`alphaSize`) überprüft. Wenn die Codelänge eines Symbols
+ * der aktuellen Länge entspricht, wird ihm der aktuelle Code (`vec`) zugewiesen.
+ * Der Code wird dann für das nächste Symbol der gleichen Länge inkrementiert.
+ * Nachdem alle Symbole einer bestimmten Länge verarbeitet wurden, wird der Code
+ * um ein Bit nach links verschoben (`vec <<= 1`), um die Präfixeigenschaft von
+ * Huffman-Codes sicherzustellen.
+ *
+ * @param code      Ein Array von Integern, in dem die zugewiesenen Huffman-Codes gespeichert werden.
+ * Es muss mindestens `alphaSize` Elemente groß sein.
+ * @param length    Ein Array von Unsigned Chars, das die Codelänge für jedes Symbol im
+ * Alphabet enthält. Es muss mindestens `alphaSize` Elemente groß sein.
+ * @param minLen    Die minimale Codelänge im Alphabet.
+ * @param maxLen    Die maximale Codelänge im Alphabet.
+ * @param alphaSize Die Größe des Alphabets (die Anzahl der Symbole).
+ *
+ * @note Die Funktion geht davon aus, dass die Eingabe `length` gültige Codelängen
+ * für ein Huffman-Code-System repräsentiert.
+ */
+void BZ2_hbAssignCodes ( Int32 *code, UChar *length, Int32 minLen, Int32 maxLen, Int32 alphaSize ) {
   Int32 n, vec, i;
   
   vec = 0;
