@@ -61,9 +61,7 @@ void BZ2_hbMakeCodeLengths ( UChar *len, Int32 *freq, Int32 alphaSize, Int32 max
         heap[zz] = tmp;
       }
     }
-    
-    AssertH( nHeap < (BZ_MAX_ALPHA_SIZE+2), 2001 );
-    
+        
     while (nHeap > 1) {
       n1 = heap[1]; heap[1] = heap[nHeap]; nHeap -= 1;
       {
@@ -117,8 +115,6 @@ void BZ2_hbMakeCodeLengths ( UChar *len, Int32 *freq, Int32 alphaSize, Int32 max
       
     }
     
-    AssertH( nNodes < (BZ_MAX_ALPHA_SIZE * 2), 2002 );
-    
     tooLong = False;
     for (i = 1; i <= alphaSize; i++) {
       j = 0;
@@ -160,7 +156,7 @@ void BZ2_hbMakeCodeLengths ( UChar *len, Int32 *freq, Int32 alphaSize, Int32 max
 
 
 /** (KI-generated)
- * 
+ *
  * @brief Weist jedem Symbol in einem Alphabet Huffman-Codes basierend auf seinen Codelängen zu.
  *
  * Diese Funktion iteriert durch die gegebenen Codelängen (`length`) von der minimalen

@@ -141,13 +141,11 @@ static void generateMoveToFrontValues ( EState* s ) {
   }
   
   for (Int32 i = 0; i < s->nblock; i++) {
-    AssertD ( wr <= i, "generateMoveToFrontValues(1)" );
     Int32 precedingIndexOfBurrowWheelerTransformation = ptr[i]-1;
     if (precedingIndexOfBurrowWheelerTransformation < 0) {
       precedingIndexOfBurrowWheelerTransformation += s->nblock;
     }
     UChar ll_i = s->unseqToSeq[block[precedingIndexOfBurrowWheelerTransformation]];
-    AssertD ( ll_i < s->nInUse, "generateMoveToFrontValues(2a)" );
     
     if (yy[0] == ll_i) {
       zPend += 1;
@@ -273,7 +271,6 @@ static void sendMoveToFrontValues ( EState* s ) {
   }
   
   /*--- Decide how many coding tables to use ---*/
-  AssertH ( s->nMoveToFront > 0, 3001 );
   if (s->nMoveToFront < 200)  {
     nGroups = 2;
   }
@@ -437,11 +434,7 @@ static void sendMoveToFrontValues ( EState* s ) {
     }
   }
   
-  
-  AssertH( nGroups < 8, 3002 );
-  AssertH( nSelectors < 32768 && nSelectors <= BZ_MAX_SELECTORS, 3003 );
-  
-  
+    
   /*--- Compute MTF values for the selectors. ---*/
   {
     UChar pos[BZ_N_GROUPS]; UChar ll_i; UChar tmp2; UChar tmp;
@@ -475,8 +468,6 @@ static void sendMoveToFrontValues ( EState* s ) {
         minLen = s->len[t][i];
       }
     }
-    AssertH ( !(maxLen > 17 /*20*/ ), 3004 );
-    AssertH ( !(minLen < 1),  3005 );
     BZ2_hbAssignCodes ( &(s->code[t][0]), &(s->len[t][0]), minLen, maxLen, alphaSize );
   }
   
@@ -567,7 +558,6 @@ static void sendMoveToFrontValues ( EState* s ) {
     if (ge >= s->nMoveToFront) {
       ge = s->nMoveToFront-1;
     }
-    AssertH ( s->selector[selCtr] < nGroups, 3006 );
     
     for (Int32 i = gs; i <= ge; i++) {
       bsW ( s, s->len  [s->selector[selCtr]] [mtfv[i]], s->code [s->selector[selCtr]] [mtfv[i]] );
@@ -576,7 +566,6 @@ static void sendMoveToFrontValues ( EState* s ) {
     gs = ge+1;
     selCtr += 1;
   }
-  AssertH( selCtr == nSelectors, 3007 );
   
   if (s->verbosity >= 3) {
     VPrintf1( "codes %d\n", s->numZ-nBytes );

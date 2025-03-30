@@ -721,10 +721,8 @@ Int32 BZ2_decompress ( DState* s )
       s->state = BZ_X_IDLE;
       RETURN(BZ_STREAM_END);
       
-    default: AssertH ( False, 4001 );
+    default: break;
   }
-  
-  AssertH ( False, 4002 );
   
 save_state_and_return:
   

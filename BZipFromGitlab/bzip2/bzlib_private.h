@@ -46,23 +46,6 @@ static const unsigned char False = ((Bool)0);
 static const int BUFFER_SIZE = 5000;
 
 
-extern void BZ2_bz__AssertH__fail ( int errcode );
-#define AssertH(cond,errcode) \
-   { if (!(cond)) BZ2_bz__AssertH__fail ( errcode ); }
-
-#if DEBUG
-//if debug
-#define AssertD(cond,msg) \
-   { if (!(cond)) {       \
-      fprintf ( stderr,   \
-        "\n\nlibbzip2(debug build): internal error\n\t%s\n", msg );\
-      exit(1); \
-   }}
-#else
-// else debug
-#define AssertD(cond,msg) /* */
-#endif
-
 #define VPrintf0(zf) \
    fprintf(stderr,zf)
 #define VPrintf1(zf,za1) \

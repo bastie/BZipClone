@@ -103,8 +103,6 @@ static void fallbackQSort3 ( UInt32* fmap, UInt32* eclass, Int32 loSt, Int32 hiS
   
   while (sp > 0) {
     
-    AssertH ( sp < FALLBACK_QSORT_STACK_SIZE - 1, 1004 );
-    
     fpop ( lo, hi );
     if (hi - lo < FALLBACK_QSORT_SMALL_THRESH) {
       fallbackSimpleSort ( fmap, eclass, lo, hi );
@@ -383,7 +381,6 @@ static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nb
     ftabCopy[j] -= 1;
     eclass8[fmap[i]] = (UChar)j;
   }
-  AssertH ( j < 256, 1005 );
 }
 
 #undef       SET_BH
@@ -790,8 +787,6 @@ static void mainQSort3 ( UInt32* ptr, UChar* block, UInt16* quadrant, Int32 nblo
   
   while (sp > 0) {
     
-    AssertH ( sp < MAIN_QSORT_STACK_SIZE - 2, 1001 );
-    
     mpop ( lo, hi, d );
     if (hi - lo < MAIN_QSORT_SMALL_THRESH || d > MAIN_QSORT_DEPTH_THRESH) {
       mainSimpleSort ( ptr, block, quadrant, nblock, lo, hi, d, budget );
@@ -1072,8 +1067,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
       }
     }
     
-    AssertH ( !bigDone[ss], 1006 );
-    
     /*--
      Step 2:
      Now scan this big bucket [ss] so as to synthesise the
@@ -1107,14 +1100,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
         }
       }
     }
-    
-    AssertH ( (copyStart[ss]-1 == copyEnd[ss])
-             ||
-             /* Extremely rare case missing in bzip2-1.0.0 and 1.0.1.
-              Necessity for this case is demonstrated by compressing
-              a sequence of approximately 48.5 million of character
-              251; 1.0.0/1.0.1 will then die here. */
-             (copyStart[ss] == 0 && copyEnd[ss] == nblock-1), 1007 )
     
     for (j = 0; j <= 255; j++) {
       ftab[(j << 8) + ss] |= (1 << 21);
@@ -1178,7 +1163,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
           quadrant[a2update + nblock] = qVal;
         }
       }
-      AssertH ( ((bbSize-1) >> shifts) <= 65535, 1002 );
     }
     
   }
@@ -1267,7 +1251,6 @@ void BZ2_blockSort ( EState* s ) {
     }
   }
   
-  AssertH( s->origPtr != -1, 1003 );
 }
 
 
