@@ -133,7 +133,7 @@ static Bool isempty_RL ( EState* s ) {
 
 
 /*---------------------------------------------------*/
-int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int verbosity, int workFactor ) {
+int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int workFactor ) {
   Int32   n;
   EState* s;
   
@@ -191,7 +191,6 @@ int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int verbosity, int 
   s->combinedCRC       = 0;
   s->blockSize100k     = blockSize100k;
   s->nblockMAX         = 100000 * blockSize100k - 19;
-  s->verbosity         = verbosity;
   s->workFactor        = workFactor;
   
   s->block             = (UChar*)s->arr2;
@@ -576,7 +575,7 @@ int BZ2_bzCompressEnd  ( bz_stream *strm ) {
 /*---------------------------------------------------*/
 
 /*---------------------------------------------------*/
-int BZ2_bzDecompressInit ( bz_stream* strm, int verbosity, int small ) {
+int BZ2_bzDecompressInit ( bz_stream* strm, int small ) {
   DState* s;
   
   if (!bz_config_ok()) {
@@ -587,9 +586,6 @@ int BZ2_bzDecompressInit ( bz_stream* strm, int verbosity, int small ) {
     return BZ_PARAM_ERROR;
   }
   if (small != 0 && small != 1) {
-    return BZ_PARAM_ERROR;
-  }
-  if (verbosity < 0 || verbosity > 4) {
     return BZ_PARAM_ERROR;
   }
   
@@ -619,7 +615,6 @@ int BZ2_bzDecompressInit ( bz_stream* strm, int verbosity, int small ) {
   s->ll16                  = NULL;
   s->tt                    = NULL;
   s->currBlockNo           = 0;
-  s->verbosity             = verbosity;
   
   return BZ_OK;
 }
@@ -1053,12 +1048,6 @@ int BZ2_bzDecompress ( bz_stream *strm ) {
       }
       if (s->nblock_used == s->save_nblock+1 && s->state_out_len == 0) {
         BZ_FINALISE_CRC ( &s->calculatedBlockCRC );
-        if (s->verbosity >= 3) {
-          VPrintf2 ( " {0x%08x, 0x%08x}", s->storedBlockCRC, s->calculatedBlockCRC );
-        }
-        if (s->verbosity >= 2) {
-          VPrintf0 ( "]" );
-        }
         if (s->calculatedBlockCRC != s->storedBlockCRC) {
           return BZ_DATA_ERROR;
         }
@@ -1073,10 +1062,6 @@ int BZ2_bzDecompress ( bz_stream *strm ) {
     if (s->state >= BZ_X_MAGIC_1) {
       Int32 r = BZ2_decompress ( s );
       if (r == BZ_STREAM_END) {
-        if (s->verbosity >= 3) {
-          VPrintf2 ( "\n    combined CRCs: stored = 0x%08x, computed = 0x%08x",
-                    s->storedCombinedCRC, s->calculatedCombinedCRC );
-        }
         if (s->calculatedCombinedCRC != s->storedCombinedCRC) {
           return BZ_DATA_ERROR;
         }
@@ -1156,13 +1141,13 @@ static Bool myfeof ( FILE* f ) {
 
 
 /*---------------------------------------------------*/
-BZFILE* BZ2_bzWriteOpen ( int* bzerror, FILE* f, int blockSize100k, int verbosity, int workFactor ) {
+BZFILE* BZ2_bzWriteOpen ( int* bzerror, FILE* f, int blockSize100k, int workFactor ) {
   Int32   ret;
   bzFile* bzf = NULL;
   
   BZ_SETERR(BZ_OK);
   
-  if (f == NULL || (blockSize100k < 1 || blockSize100k > 9) || (workFactor < 0 || workFactor > 250) || (verbosity < 0 || verbosity > 4)) {
+  if (f == NULL || (blockSize100k < 1 || blockSize100k > 9) || (workFactor < 0 || workFactor > 250)) {
     BZ_SETERR(BZ_PARAM_ERROR);
     return NULL;
   }
@@ -1190,7 +1175,7 @@ BZFILE* BZ2_bzWriteOpen ( int* bzerror, FILE* f, int blockSize100k, int verbosit
   if (workFactor == 0) {
     workFactor = 30;
   }
-  ret = BZ2_bzCompressInit ( &(bzf->strm), blockSize100k, verbosity, workFactor );
+  ret = BZ2_bzCompressInit ( &(bzf->strm), blockSize100k, workFactor );
   if (ret != BZ_OK) {
     BZ_SETERR(ret);
     free(bzf);
@@ -1351,7 +1336,7 @@ void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nb
 
 
 /*---------------------------------------------------*/
-BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int verbosity, int small, void* unused, int nUnused ) {
+BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int small, void* unused, int nUnused ) {
   bzFile* bzf = NULL;
   int     ret;
   
@@ -1359,7 +1344,6 @@ BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int verbosity, int small, void* 
   
   if (f == NULL ||
       (small != 0 && small != 1) ||
-      (verbosity < 0 || verbosity > 4) ||
       (unused == NULL && nUnused != 0) ||
       (unused != NULL && (nUnused < 0 || nUnused > BUFFER_SIZE))) {
     BZ_SETERR(BZ_PARAM_ERROR);
@@ -1394,7 +1378,7 @@ BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int verbosity, int small, void* 
     nUnused -= 1;
   }
   
-  ret = BZ2_bzDecompressInit ( &(bzf->strm), verbosity, small );
+  ret = BZ2_bzDecompressInit ( &(bzf->strm), small );
   if (ret != BZ_OK) {
     BZ_SETERR(ret);
     free(bzf);
@@ -1534,7 +1518,6 @@ int BZ2_bzBuffToBuffCompress
                            char*         source,
                            unsigned int  sourceLen,
                            int           blockSize100k,
-                           int           verbosity,
                           int           workFactor ) {
   bz_stream strm;
   int ret;
@@ -1542,7 +1525,6 @@ int BZ2_bzBuffToBuffCompress
   if (dest == NULL || destLen == NULL ||
       source == NULL ||
       blockSize100k < 1 || blockSize100k > 9 ||
-      verbosity < 0 || verbosity > 4 ||
       workFactor < 0 || workFactor > 250) {
     return BZ_PARAM_ERROR;
   }
@@ -1553,7 +1535,7 @@ int BZ2_bzBuffToBuffCompress
   strm.bzalloc = NULL;
   strm.bzfree = NULL;
   strm.opaque = NULL;
-  ret = BZ2_bzCompressInit ( &strm, blockSize100k, verbosity, workFactor );
+  ret = BZ2_bzCompressInit ( &strm, blockSize100k, workFactor );
   if (ret != BZ_OK) {
     return ret;
   }
@@ -1592,22 +1574,20 @@ int BZ2_bzBuffToBuffDecompress
                              unsigned int* destLen,
                              char*         source,
                              unsigned int  sourceLen,
-                             int           small,
-                            int           verbosity ) {
+                             int           small) {
   bz_stream strm;
   int ret;
   
   if (dest == NULL || destLen == NULL ||
       source == NULL ||
-      (small != 0 && small != 1) ||
-      verbosity < 0 || verbosity > 4) {
+      (small != 0 && small != 1) ) {
     return BZ_PARAM_ERROR;
   }
   
   strm.bzalloc = NULL;
   strm.bzfree = NULL;
   strm.opaque = NULL;
-  ret = BZ2_bzDecompressInit ( &strm, verbosity, small );
+  ret = BZ2_bzDecompressInit ( &strm, small );
   if (ret != BZ_OK) {
     return ret;
   }
@@ -1681,7 +1661,6 @@ static BZFILE * bzopen_or_bzdopen
   char   mode2[10]     = "";
   FILE   *fp           = NULL;
   BZFILE *bzip2FilePointer         = NULL;
-  int    verbosity     = 0;
   int    workFactor    = 30;
   int    smallMode     = 0;
   int    nUnused       = 0;
@@ -1740,10 +1719,10 @@ static BZFILE * bzopen_or_bzdopen
     if (blockSize100k > 9) {
       blockSize100k = 9;
     }
-    bzip2FilePointer = BZ2_bzWriteOpen (&bzerr,fp,blockSize100k,verbosity,workFactor);
+    bzip2FilePointer = BZ2_bzWriteOpen (&bzerr, fp, blockSize100k, workFactor);
   }
   else {
-    bzip2FilePointer = BZ2_bzReadOpen (&bzerr,fp,verbosity,smallMode,unused,nUnused);
+    bzip2FilePointer = BZ2_bzReadOpen (&bzerr, fp, smallMode, unused, nUnused);
   }
   if (bzip2FilePointer == NULL) {
     if (fp != stdin && fp != stdout) {

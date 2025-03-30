@@ -82,38 +82,6 @@ typedef int IntNative;
 /*--- Misc (file handling) data decls             ---*/
 /*---------------------------------------------------*/
 
-/**
- @brief Steuert den Detaillierungsgrad der Programmausgabe.
- 
- Diese Variable legt fest, wie ausführlich das Programm während seiner Ausführung
- Informationen ausgibt. Höhere Werte führen zu detaillierteren Ausgaben,
- während niedrigere Werte die Ausgabe auf wesentliche Informationen beschränken.
- 
- @discussion
- Die folgenden Werte sind zulässig:
- 
-     0: Keine Ausgabe (nur kritische Fehler)
- 
-     1: Grundlegende Informationen
- 
-     2: Detaillierte Informationen
- 
-     3: Sehr detaillierte Informationen (Debug-Modus)
- 
-     4: Maximale Ausführlichkeit (umfassender Debug-Modus)
- 
- @note Höhere Werte führen zu einer umfangreicheren Ausgabe, die bei der
- Fehlersuche und Überwachung des Programmablaufs hilfreich sein kann. Werte
- höher als 4 werden als 4 interpretiert.
- 
- @code
- // Beispielhafte Verwendung
- if (verbosity >= 2) {
-   printf("Debug: Aktueller Wert von x ist %d\n", x);
- }
- @endcode
- */
-Int32   verbosity;
 Bool    keepInputFiles, smallMode, deleteOutputOnInterrupt;
 Bool    forceOverwrite, testFailsExist, unzFailsExist;
 Bool quiet;
@@ -461,14 +429,10 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     handleIoErrorsAndExitApplication();
   }
   
-  bzf = BZ2_bzWriteOpen ( &bzerr, zStream, blockSize100k, verbosity, workFactor );
+  bzf = BZ2_bzWriteOpen ( &bzerr, zStream, blockSize100k, workFactor );
   if (bzerr != BZ_OK) {
     // führe die Fehlerbehandlung aus
     handleErrorsAndExitApplication (&bzerr_dummy, bzf, 1, &nbytes_in_lo32, &nbytes_in_hi32, &nbytes_out_lo32, &nbytes_out_hi32, bzerr);
-  }
-  
-  if (verbosity >= 2) {
-    fprintf ( stderr, "\n" );
   }
   
   // Arbeite bis zum Ende aller Tage
@@ -537,26 +501,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
     // führe die Fehlerbehandlung aus
     handleIoErrorsAndExitApplication();
   }
-  
-  if (verbosity >= 1) {
-    if (nbytes_in_lo32 == 0 && nbytes_in_hi32 == 0) {
-      fprintf ( stderr, " no data compressed.\n");
-    }
-    else {
-      Char   buf_nin[32];
-      Char   buf_nout[32];
-      UInt64 nbytes_in,   nbytes_out;
-      double nbytes_in_d, nbytes_out_d;
-      uInt64_from_UInt32s ( &nbytes_in, nbytes_in_lo32, nbytes_in_hi32 );
-      uInt64_from_UInt32s ( &nbytes_out, nbytes_out_lo32, nbytes_out_hi32 );
-      nbytes_in_d  = uInt64_to_double ( &nbytes_in );
-      nbytes_out_d = uInt64_to_double ( &nbytes_out );
-      uInt64_toAscii ( buf_nin, &nbytes_in );
-      uInt64_toAscii ( buf_nout, &nbytes_out );
-      fprintf ( stderr, "%6.3f:1, %6.3f bits/byte, " "%5.2f%% saved, %s in, %s out.\n", nbytes_in_d / nbytes_out_d, (8.0 * nbytes_out_d) / nbytes_in_d, 100.0 * (1.0 - nbytes_out_d / nbytes_in_d), buf_nin, buf_nout);
-    }
-  }
-  
+   
   // beenden der Funktion (ohne Fehler)
   return;
 }
@@ -592,7 +537,7 @@ static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
   
   while (True) {
     
-    bzf = BZ2_bzReadOpen ( &bzerr, zStream, verbosity, (int)smallMode, unused, nUnused );
+    bzf = BZ2_bzReadOpen ( &bzerr, zStream, (int)smallMode, unused, nUnused );
     if (bzf == NULL || bzerr != BZ_OK) {
       goto errhandler;
     }
@@ -672,9 +617,6 @@ closeok:
     }
   }
   outputHandleJustInCase = NULL;
-  if (verbosity >= 2) {
-    fprintf ( stderr, "\n    " );
-  }
   return True;
   
 trycat:
@@ -753,7 +695,7 @@ static Bool testStream ( FILE *zStream ) {
   
   while (True) {
     
-    bzf = BZ2_bzReadOpen ( &bzerr, zStream, verbosity, (int)smallMode, unused, nUnused );
+    bzf = BZ2_bzReadOpen ( &bzerr, zStream, (int)smallMode, unused, nUnused );
     if (bzf == NULL || bzerr != BZ_OK) {
       goto errhandler;
     }
@@ -795,15 +737,10 @@ static Bool testStream ( FILE *zStream ) {
     handleIoErrorsAndExitApplication();
   }
   
-  if (verbosity >= 2) {
-    fprintf ( stderr, "\n    " );
-  }
   return True;
   
 errhandler:
   BZ2_bzReadClose ( &bzerr_dummy, bzf );
-  if (verbosity == 0)
-    fprintf ( stderr, "%s: %s: ", progName, inputFilename );
   switch (bzerr) {
     case BZ_CONFIG_ERROR:
       printConfigErrorAndExitApplication();
@@ -1523,13 +1460,7 @@ static void compress ( Char *name ) {
       printUnexpectedProgramStateAndExitApplication ( "compress: bad srcMode" );
       break;
   }
-  
-  if (verbosity >= 1) {
-    fprintf ( stderr,  "  %s: ", inputFilename );
-    pad ( inputFilename );
-    fflush ( stderr );
-  }
-  
+    
   /*--- Now the input and output handles are sane.  Do the Biz. ---*/
   outputHandleJustInCase = outStr;
   deleteOutputOnInterrupt = True;
@@ -1690,12 +1621,6 @@ zzz:
       break;
   }
   
-  if (verbosity >= 1) {
-    fprintf ( stderr, "  %s: ", inputFilename );
-    pad ( inputFilename );
-    fflush ( stderr );
-  }
-  
   /*--- Now the input and output handles are sane.  Do the Biz. ---*/
   outputHandleJustInCase = outStr;
   deleteOutputOnInterrupt = True;
@@ -1723,19 +1648,9 @@ zzz:
   }
   deleteOutputOnInterrupt = False;
   
-  if ( magicNumberOK ) {
-    if (verbosity >= 1) {
-      fprintf ( stderr, "done\n" );
-    }
-  }
-  else {
+  if ( !magicNumberOK ) {
     setExitReturnCode(2);
-    if (verbosity >= 1) {
-      fprintf ( stderr, "not a bzip2 file.\n" );
-    }
-    else {
-      fprintf ( stderr, "%s: %s is not a bzip2 file.\n", progName, inputFilename );
-    }
+    fprintf ( stderr, "%s: %s is not a bzip2 file.\n", progName, inputFilename );
   }
 }
 
@@ -1798,19 +1713,10 @@ static void testf ( Char *name ) {
       break;
   }
   
-  if (verbosity >= 1) {
-    fprintf ( stderr, "  %s: ", inputFilename );
-    pad ( inputFilename );
-    fflush ( stderr );
-  }
-  
   /*--- Now the input handle is sane.  Do the Biz. ---*/
   outputHandleJustInCase = NULL;
   allOK = testStream ( inStr );
   
-  if (allOK && verbosity >= 1) {
-    fprintf ( stderr, "ok\n" );
-  }
   if (!allOK) {
     testFailsExist = True;
   }
@@ -2050,7 +1956,6 @@ int main ( int argc, char *argv[] ) {
   keepInputFiles          = False;
   forceOverwrite          = False;
   quiet                   = False;
-  verbosity               = 0;
   blockSize100k           = 9;
   testFailsExist          = False;
   unzFailsExist           = False;
@@ -2237,10 +2142,6 @@ int main ( int argc, char *argv[] ) {
               // beende die Anwendung mit dem Rückkehrcode fehlerfrei
               exit ( 0 );
               break;
-            case 'v': // Wenn das Argument 'v' ist
-              // erhöhe den Detailgrad der Ausgaben um 1
-              verbosity += 1;
-              break;
             case 'h':  // Wenn das Argument 'h'
               // zeige die Information zur Nutzung des Programms an
               printUsageInformationOnStandardErrorStream ( progName ); // MARK: Logikfehler, schreiben auf stderr aber RC=0
@@ -2331,21 +2232,17 @@ int main ( int argc, char *argv[] ) {
                                     blockSize100k = 9;
                                   }
                                   else {
-                                    if (ISFLAG(argument,"--verbose"))           {
-                                      verbosity += 1;
+                                    if (ISFLAG(argument,"--help"))              {
+                                      printUsageInformationOnStandardErrorStream ( progName );
+                                      exit ( 0 );
                                     }
                                     else {
-                                      if (ISFLAG(argument,"--help"))              {
+                                      if (strncmp ( argument->name, "--", 2) == 0) {
+                                        fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
                                         printUsageInformationOnStandardErrorStream ( progName );
-                                        exit ( 0 );
+                                        exit ( 1 );
                                       }
-                                      else {
-                                        if (strncmp ( argument->name, "--", 2) == 0) {
-                                          fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                                          printUsageInformationOnStandardErrorStream ( progName );
-                                          exit ( 1 );
-                                        }
-                                      }
+                                      
                                     }
                                   }
                                 }
@@ -2365,9 +2262,6 @@ int main ( int argc, char *argv[] ) {
     }
   }
   
-  if (verbosity > 4) {
-    verbosity = 4;
-  }
   if (operationMode == OPERATION_MODE_COMPRESS && smallMode && blockSize100k > 2) {
     blockSize100k = 2;
   }

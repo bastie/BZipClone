@@ -226,7 +226,7 @@ static void fallbackQSort3 ( UInt32* fmap, UInt32* eclass, Int32 loSt, Int32 hiS
 #define      WORD_BH(zz)  bhtab[(zz) >> 5]
 #define UNALIGNED_BH(zz)  ((zz) & 0x01f)
 
-static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nblock, Int32 verb ) {
+static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nblock) {
   Int32 ftab[257];
   Int32 ftabCopy[256];
   Int32 H, i, j, k, l, r, cc, cc1;
@@ -238,9 +238,6 @@ static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nb
    Initial 1-char radix sort to generate
    initial fmap and initial BH bits.
    --*/
-  if (verb >= 4) {
-    VPrintf0 ( "        bucket sorting ...\n" );
-  }
   for (i = 0; i < 257;    i++) {
     ftab[i] = 0;
   }
@@ -284,10 +281,6 @@ static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nb
   /*-- the log(N) loop --*/
   H = 1;
   while (1) {
-    
-    if (verb >= 4) {
-      VPrintf1 ( "        depth %6d has ", H );
-    }
     
     j = 0;
     for (i = 0; i < nblock; i++) {
@@ -355,10 +348,6 @@ static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nb
       }
     }
     
-    if (verb >= 4) {
-      VPrintf1 ( "%6d unresolved strings\n", nNotDone );
-    }
-    
     H *= 2;
     if (H > nblock || nNotDone == 0) {
       break;
@@ -370,9 +359,6 @@ static void fallbackSort ( UInt32* fmap, UInt32* eclass, UInt32* bhtab, Int32 nb
    eclass8 [0 .. nblock-1], since the
    previous phase destroyed it.
    --*/
-  if (verb >= 4) {
-    VPrintf0 ( "        reconstructing block ...\n" );
-  }
   j = 0;
   for (i = 0; i < nblock; i++) {
     while (ftabCopy[j] == 0) {
@@ -905,7 +891,7 @@ static void mainQSort3 ( UInt32* ptr, UChar* block, UInt16* quadrant, Int32 nblo
 
 #define BIGFREQ(b) (ftab[((b)+1) << 8] - ftab[(b) << 8])
 
-static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab, Int32 nblock, Int32 verb, Int32* budget ) {
+static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab, Int32 nblock, Int32* budget ) {
   Int32  i, j, k, ss, sb;
   Int32  runningOrder[256];
   Bool   bigDone[256];
@@ -914,9 +900,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
   UChar  c1;
   Int32  numQSorted;
   UInt16 s;
-  if (verb >= 4) {
-    VPrintf0 ( "        main sort initialise ...\n" );
-  }
   
   /*-- set up the 2-byte frequency table --*/
   for (i = 65536; i >= 0; i--) {
@@ -949,10 +932,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
   for (i = 0; i < BZ_N_OVERSHOOT; i++) {
     block   [nblock+i] = block[i];
     quadrant[nblock+i] = 0;
-  }
-  
-  if (verb >= 4) {
-    VPrintf0 ( "        bucket sorting ...\n" );
   }
   
   /*-- Complete the initial radix sort --*/
@@ -1053,9 +1032,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
           Int32 lo = ftab[sb]   & (~(1 << 21));
           Int32 hi = (ftab[sb+1] & (~(1 << 21))) - 1;
           if (hi > lo) {
-            if (verb >= 4) {
-              VPrintf4 ( "        qsort [0x%x, 0x%x]   done %d   this %d\n", ss, j, numQSorted, hi - lo + 1 );
-            }
             mainQSort3 ( ptr, block, quadrant, nblock, lo, hi, BZ_N_RADIX, budget );
             numQSorted += (hi - lo + 1);
             if (*budget < 0) {
@@ -1166,10 +1142,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
     }
     
   }
-  
-  if (verb >= 4) {
-    VPrintf3 ( "        %d pointers, %d sorted, %d scanned\n", nblock, numQSorted, nblock - numQSorted );
-  }
 }
 
 #undef BIGFREQ
@@ -1193,7 +1165,6 @@ void BZ2_blockSort ( EState* s ) {
   UChar*  block  = s->block;
   UInt32* ftab   = s->ftab;
   Int32   nblock = s->nblock;
-  Int32   verb   = s->verbosity;
   Int32   wfact  = s->workFactor;
   UInt16* quadrant;
   Int32   budget;
@@ -1201,7 +1172,7 @@ void BZ2_blockSort ( EState* s ) {
   Int32   i;
   
   if (nblock < 10000) {
-    fallbackSort ( s->arr1, s->arr2, ftab, nblock, verb );
+    fallbackSort ( s->arr1, s->arr2, ftab, nblock );
   }
   else {
     /* Calculate the location for quadrant, remembering to get
@@ -1231,15 +1202,9 @@ void BZ2_blockSort ( EState* s ) {
     budgetInit = nblock * ((wfact-1) / 3);
     budget = budgetInit;
     
-    mainSort ( ptr, block, quadrant, ftab, nblock, verb, &budget );
-    if (verb >= 3) {
-      VPrintf3 ( "      %d work, %d block, ratio %5.2f\n", budgetInit - budget, nblock, (float)(budgetInit - budget) / (float)(nblock==0 ? 1 : nblock) );
-    }
+    mainSort ( ptr, block, quadrant, ftab, nblock, &budget );
     if (budget < 0) {
-      if (verb >= 2) {
-        VPrintf0 ( "    too repetitive; using fallback sorting algorithm\n" );
-      }
-      fallbackSort ( s->arr1, s->arr2, ftab, nblock, verb );
+      fallbackSort ( s->arr1, s->arr2, ftab, nblock );
     }
   }
   
@@ -1250,7 +1215,6 @@ void BZ2_blockSort ( EState* s ) {
       break;
     }
   }
-  
 }
 
 

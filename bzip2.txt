@@ -6,8 +6,8 @@ NAME
 
 
 SYNOPSIS
-       bzip2 [ -cdfkqstvzVL123456789 ] [ filenames ...  ]
-       bunzip2 [ -fkvsVL ] [ filenames ...  ]
+       bzip2 [ -cdfkqstzVL123456789 ] [ filenames ...  ]
+       bunzip2 [ -fksVL ] [ filenames ...  ]
        bzcat [ -s ] [ filenames ...  ]
        bzip2recover filename
 
@@ -168,12 +168,6 @@ OPTIONS
               Suppress non-essential warning messages.   Messages
               pertaining  to I/O errors and other critical events
               will not be suppressed.
-
-       -v --verbose
-              Verbose mode -- show the compression ratio for each
-              file  processed.   Further  -v's  increase the ver-
-              bosity level, spewing out lots of information which
-              is primarily of interest for diagnostic purposes.
 
        -L --license -V --version
               Display  the  software  version,  license terms and

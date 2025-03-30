@@ -259,10 +259,6 @@ static void sendMoveToFrontValues ( EState* s ) {
   
   UInt16* mtfv = s->mtfv;
   
-  if (s->verbosity >= 3) {
-    VPrintf3( "      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n", s->nblock, s->nMoveToFront, s->nInUse );
-  }
-  
   alphaSize = s->nInUse+2;
   for (Int32 t = 0; t < BZ_N_GROUPS; t++) {
     for (Int32 v = 0; v < alphaSize; v++) {
@@ -317,10 +313,6 @@ static void sendMoveToFrontValues ( EState* s ) {
           && ((nGroups-nPart) % 2 == 1)) {
         aFreq -= s->moveToFrontFreq[ge];
         ge -= 1;
-      }
-      
-      if (s->verbosity >= 3) {
-        VPrintf5( "      initial group %d, [%d .. %d], has %d syms (%4.1f%%)\n", nPart, gs, ge, aFreq, (100.0 * (float)aFreq) / (float)(s->nMoveToFront) );
       }
       
       for (Int32 v = 0; v < alphaSize; v++) {
@@ -416,13 +408,6 @@ static void sendMoveToFrontValues ( EState* s ) {
       
       gs = ge+1;
     }
-    if (s->verbosity >= 3) {
-      VPrintf2 ( "      pass %d: size is %d, grp uses are ", iter+1, totc/8 );
-      for (Int32 t = 0; t < nGroups; t++) {
-        VPrintf1 ( "%d ", fave[t] );
-      }
-      VPrintf0 ( "\n" );
-    }
     
     /*--
      Recompute the tables based on the accumulated frequencies.
@@ -505,10 +490,6 @@ static void sendMoveToFrontValues ( EState* s ) {
         }
       }
     }
-    
-    if (s->verbosity >= 3) {
-      VPrintf1( "      bytes: mapping %d, ", s->numZ-nBytes );
-    }
   }
   
   /*--- Now the selectors. ---*/
@@ -520,9 +501,6 @@ static void sendMoveToFrontValues ( EState* s ) {
       bsW(s,1,1);
     }
     bsW(s,1,0);
-  }
-  if (s->verbosity >= 3) {
-    VPrintf1( "selectors %d, ", s->numZ-nBytes );
   }
   
   /*--- Now the coding tables. ---*/
@@ -544,10 +522,6 @@ static void sendMoveToFrontValues ( EState* s ) {
     }
   }
   
-  if (s->verbosity >= 3) {
-    VPrintf1 ( "code lengths %d, ", s->numZ-nBytes );
-  }
-  
   /*--- And finally, the block data proper ---*/
   nBytes = s->numZ;
   selCtr = 0;
@@ -566,10 +540,6 @@ static void sendMoveToFrontValues ( EState* s ) {
     gs = ge+1;
     selCtr += 1;
   }
-  
-  if (s->verbosity >= 3) {
-    VPrintf1( "codes %d\n", s->numZ-nBytes );
-  }
 }
 
 
@@ -582,10 +552,6 @@ void BZ2_compressBlock ( EState* status, Bool is_last_block ) {
     status->combinedCRC ^= status->blockCRC;
     if (status->blockNo > 1) {
       status->numZ = 0;
-    }
-    
-    if (status->verbosity >= 2) {
-      VPrintf4( "    block %d: crc = 0x%08x, combined CRC = 0x%08x, size = %d\n", status->blockNo, status->blockCRC, status->combinedCRC, status->nblock );
     }
     
     BZ2_blockSort ( status );
@@ -638,9 +604,6 @@ void BZ2_compressBlock ( EState* status, Bool is_last_block ) {
     bsPutUChar ( status, 0x50 );
     bsPutUChar ( status, 0x90 );
     bsPutUInt32 ( status, status->combinedCRC );
-    if (status->verbosity >= 2) {
-      VPrintf1( "    final combined CRC = 0x%08x\n   ", status->combinedCRC );
-    }
     bsFinishWrite ( status );
   }
 }

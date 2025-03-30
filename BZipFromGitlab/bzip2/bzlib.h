@@ -74,7 +74,6 @@ typedef struct {
   extern int BZ2_bzCompressInit (
       bz_stream* strm,
       int        blockSize100k,
-      int        verbosity,
       int        workFactor
    );
 
@@ -89,7 +88,6 @@ typedef struct {
 
   extern int BZ2_bzDecompressInit (
       bz_stream *strm,
-      int       verbosity,
       int       small
    );
 
@@ -110,7 +108,6 @@ typedef void BZFILE;
   extern BZFILE* BZ2_bzReadOpen (
       int*  bzerror,
       FILE* f,
-      int   verbosity,
       int   small,
       void* unused,
       int   nUnused
@@ -139,7 +136,6 @@ typedef void BZFILE;
       int*  bzerror,
       FILE* f,
       int   blockSize100k,
-      int   verbosity,
       int   workFactor
    );
 
@@ -177,7 +173,6 @@ typedef void BZFILE;
       char*         source,
       unsigned int  sourceLen,
       int           blockSize100k,
-      int           verbosity,
       int           workFactor
    );
 
@@ -186,8 +181,7 @@ typedef void BZFILE;
       unsigned int* destLen,
       char*         source,
       unsigned int  sourceLen,
-      int           small,
-      int           verbosity
+      int           small
    );
 
 

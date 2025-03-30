@@ -91,7 +91,7 @@ int main ( int argc, char** argv ) {
   fprintf ( stderr, "%d bytes read\n", nIn );
   
   nZ = M_BLOCK;
-  r = BZ2_bzBuffToBuffCompress ( zbuf, &nZ, inbuf, nIn, 9, 0, 30 );
+  r = BZ2_bzBuffToBuffCompress ( zbuf, &nZ, inbuf, nIn, 9, 30 );
   
   assert (r == BZ_OK);
   fprintf ( stderr, "%d after compression\n", nZ );
@@ -100,7 +100,7 @@ int main ( int argc, char** argv ) {
     fprintf ( stderr, "bit %d  ", bit );
     flip_bit ( bit );
     nOut = M_BLOCK_OUT;
-    r = BZ2_bzBuffToBuffDecompress ( outbuf, &nOut, zbuf, nZ, 0, 0 );
+    r = BZ2_bzBuffToBuffDecompress ( outbuf, &nOut, zbuf, nZ, 0 );
     fprintf ( stderr, " %d  %s ", r, bzerrorstrings[-r] );
     
     if (r != BZ_OK) {

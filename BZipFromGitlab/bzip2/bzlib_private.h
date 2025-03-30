@@ -45,21 +45,6 @@ static const unsigned char False = ((Bool)0);
 
 static const int BUFFER_SIZE = 5000;
 
-
-#define VPrintf0(zf) \
-   fprintf(stderr,zf)
-#define VPrintf1(zf,za1) \
-   fprintf(stderr,zf,za1)
-#define VPrintf2(zf,za1,za2) \
-   fprintf(stderr,zf,za1,za2)
-#define VPrintf3(zf,za1,za2,za3) \
-   fprintf(stderr,zf,za1,za2,za3)
-#define VPrintf4(zf,za1,za2,za3,za4) \
-   fprintf(stderr,zf,za1,za2,za3,za4)
-#define VPrintf5(zf,za1,za2,za3,za4,za5) \
-   fprintf(stderr,zf,za1,za2,za3,za4,za5)
-
-
 #define BZALLOC(nnn) (strm->bzalloc)(strm->opaque,(nnn),1)
 #define BZFREE(ppp)  (strm->bzfree)(strm->opaque,(ppp))
 
@@ -205,7 +190,6 @@ typedef struct {
   UInt32   combinedCRC;
   
   /* misc administratium */
-  Int32    verbosity;
   Int32    blockNo;
   Int32    blockSize100k;
   
@@ -317,7 +301,6 @@ typedef struct {
   Int32    blockSize100k;
   Bool     smallDecompress;
   Int32    currBlockNo;
-  Int32    verbosity;
   
   /* for undoing the Burrows-Wheeler transform */
   Int32    origPtr;
