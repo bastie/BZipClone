@@ -99,9 +99,8 @@ static void makeMaps_e ( EState* s ) {
 /*---------------------------------------------------*/
 static void generateMoveToFrontValues ( EState* s ) {
   UChar   yy[256];
-  //Int32   precedingIndexOfBurrowWheelerTransformation;
-  Int32   zPend;
-  Int32   wr;
+  Int32   zPend = 0;
+  Int32   wr = 0;
   Int32   EOB;
   
   /*
@@ -137,20 +136,17 @@ static void generateMoveToFrontValues ( EState* s ) {
     s->moveToFrontFreq[i] = 0;
   }
   
-  wr = 0;
-  zPend = 0;
   for (Int32 i = 0; i < s->nInUse; i++) {
     yy[i] = (UChar) i;
   }
   
   for (Int32 i = 0; i < s->nblock; i++) {
-    UChar ll_i;
     AssertD ( wr <= i, "generateMoveToFrontValues(1)" );
     Int32 precedingIndexOfBurrowWheelerTransformation = ptr[i]-1;
     if (precedingIndexOfBurrowWheelerTransformation < 0) {
       precedingIndexOfBurrowWheelerTransformation += s->nblock;
     }
-    ll_i = s->unseqToSeq[block[precedingIndexOfBurrowWheelerTransformation]];
+    UChar ll_i = s->unseqToSeq[block[precedingIndexOfBurrowWheelerTransformation]];
     AssertD ( ll_i < s->nInUse, "generateMoveToFrontValues(2a)" );
     
     if (yy[0] == ll_i) {

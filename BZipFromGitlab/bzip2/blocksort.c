@@ -917,8 +917,6 @@ static void mainQSort3 ( UInt32* ptr, UChar* block, UInt16* quadrant, Int32 nblo
 */
 
 #define BIGFREQ(b) (ftab[((b)+1) << 8] - ftab[(b) << 8])
-#define SETMASK (1 << 21)
-#define CLEARMASK (~(SETMASK))
 
 static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab, Int32 nblock, Int32 verb, Int32* budget ) {
   Int32  i, j, k, ss, sb;
@@ -1064,9 +1062,9 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
     for (j = 0; j <= 255; j++) {
       if (j != ss) {
         sb = (ss << 8) + j;
-        if ( ! (ftab[sb] & SETMASK) ) {
-          Int32 lo = ftab[sb]   & CLEARMASK;
-          Int32 hi = (ftab[sb+1] & CLEARMASK) - 1;
+        if ( ! (ftab[sb] & (1 << 21)) ) {
+          Int32 lo = ftab[sb]   & (~(1 << 21));
+          Int32 hi = (ftab[sb+1] & (~(1 << 21))) - 1;
           if (hi > lo) {
             if (verb >= 4) {
               VPrintf4 ( "        qsort [0x%x, 0x%x]   done %d   this %d\n", ss, j, numQSorted, hi - lo + 1 );
@@ -1078,7 +1076,7 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
             }
           }
         }
-        ftab[sb] |= SETMASK;
+        ftab[sb] |= (1 << 21);
       }
     }
     
@@ -1093,10 +1091,10 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
      --*/
     {
       for (j = 0; j <= 255; j++) {
-        copyStart[j] =  ftab[(j << 8) + ss]     & CLEARMASK;
-        copyEnd  [j] = (ftab[(j << 8) + ss + 1] & CLEARMASK) - 1;
+        copyStart[j] =  ftab[(j << 8) + ss]     & (~(1 << 21));
+        copyEnd  [j] = (ftab[(j << 8) + ss + 1] & (~(1 << 21))) - 1;
       }
-      for (j = ftab[ss << 8] & CLEARMASK; j < copyStart[ss]; j++) {
+      for (j = ftab[ss << 8] & (~(1 << 21)); j < copyStart[ss]; j++) {
         k = ptr[j]-1;
         if (k < 0) {
           k += nblock;
@@ -1106,7 +1104,7 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
           ptr[ copyStart[c1]++ ] = k;
         }
       }
-      for (j = (ftab[(ss+1) << 8] & CLEARMASK) - 1; j > copyEnd[ss]; j--) {
+      for (j = (ftab[(ss+1) << 8] & (~(1 << 21))) - 1; j > copyEnd[ss]; j--) {
         k = ptr[j]-1;
         if (k < 0) {
           k += nblock;
@@ -1127,7 +1125,7 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
              (copyStart[ss] == 0 && copyEnd[ss] == nblock-1), 1007 )
     
     for (j = 0; j <= 255; j++) {
-      ftab[(j << 8) + ss] |= SETMASK;
+      ftab[(j << 8) + ss] |= (1 << 21);
     }
     
     /*--
@@ -1172,8 +1170,8 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
     bigDone[ss] = True;
     
     if (i < 255) {
-      Int32 bbStart  = ftab[ss << 8] & CLEARMASK;
-      Int32 bbSize   = (ftab[(ss+1) << 8] & CLEARMASK) - bbStart;
+      Int32 bbStart  = ftab[ss << 8] & (~(1 << 21));
+      Int32 bbSize   = (ftab[(ss+1) << 8] & (~(1 << 21))) - bbStart;
       Int32 shifts   = 0;
       
       while ((bbSize >> shifts) > 65534) {
@@ -1199,8 +1197,6 @@ static void mainSort ( UInt32* ptr, UChar* block, UInt16* quadrant, UInt32* ftab
 }
 
 #undef BIGFREQ
-#undef SETMASK
-#undef CLEARMASK
 
 
 /*---------------------------------------------*/
