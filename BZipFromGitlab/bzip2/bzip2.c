@@ -83,8 +83,19 @@ typedef int IntNative;
 /*---------------------------------------------------*/
 
 Bool    keepInputFiles, smallMode, deleteOutputOnInterrupt;
-Bool    forceOverwrite, testFailsExist, unzFailsExist;
-Bool quiet;
+/**
+ Flag, ob die Datei(en) überschrieben werden sollen.
+ */
+Bool    forceOverwrite;
+/**
+ Flag, ob es Fehler beim Testen der Datei(en) gab.
+ */
+Bool    testFailsExist;
+/**
+ Flag, ob es Fehler beim Dekomprimieren der Datei(en) gab.
+ */
+Bool    decompressFailsExist;
+Bool    quiet;
 Int32   numFileNames, numFilesProcessed, blockSize100k;
 Int32   exitReturnCode;
 
@@ -928,7 +939,7 @@ static void handleIoErrorsAndExitApplication ( void ) {
 
 
 /*---------------------------------------------*/
-static void mySignalCatcher ( IntNative n ) {
+static void mySignalCatcher ( IntNative n, siginfo_t *info, void *context ) {
   fprintf ( stderr, "\n%s: Control-C or similar caught, quitting.\n", progName );
   cleanUpAndFailAndExitApplication(1);
 }
@@ -1635,7 +1646,7 @@ zzz:
     }
   }
   else {
-    unzFailsExist = True;
+    decompressFailsExist = True;
     deleteOutputOnInterrupt = False;
     if ( srcMode == SourceMode_File2File ) {
       IntNative retVal = remove ( outputFilename );
@@ -1652,7 +1663,7 @@ zzz:
 
 
 /*---------------------------------------------*/
-static void testf ( Char *name ) {
+static void testFile ( Char *name ) {
   FILE *inStr;
   Bool allOK;
   struct stat statBuf;
@@ -1930,7 +1941,115 @@ Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
   return (strcmp(aa->name, (s))==0);
 }
 
+/**
+ @brief Funktion, welche die eigentliche Verarbeitung anstößt.
+ 
+ @param fileList
+ Verkette Liste die die Kommandozeilenparameter enthält.
+ */
+void operate(LinkedListElementOfStrings *fileList) {
+  LinkedListElementOfStrings *file;
+  Bool operationFailed = False;
+  void (*operationFunc)(char*) = NULL;
+  
+  // Setze die entsprechende Operationsfunktion basierend auf dem Modus auf den passenden Funktionspointer
+  switch (operationMode) {
+    case OPERATION_MODE_COMPRESS:
+      operationFunc = compress;
+      break;
+    case OPERATION_MODE_DECOMPRESS:
+      operationFunc = uncompress;
+      break;
+    case OPERATION_MODE_TEST:
+      operationFunc = testFile;
+      break;
+    default:
+      fprintf(stderr, "\n Unsupported operation. Only compress, decompress and test are supported.\n");
+      setExitReturnCode(1);
+      exit(exitReturnCode);
+  }
+  
+  // Standard Input/Output Fall
+  if (srcMode == SourceMode_StandardInput2StandardOutput) {
+    operationFunc(NULL);
+  }
+  // Dateilisten Fall
+  else {
+    for (file = fileList; file != NULL; file = file->next) {
+      numFilesProcessed += 1;
+      operationFunc(file->name);
+    }
+  }
+  
+  // Kam es zu einem Fehler (bei decompress oder test?
+  operationFailed = decompressFailsExist + testFailsExist; // MARK: c-specific, Bool is true if value>0
+  
+  // Fehlerbehandlung für Decompress und Test
+  if (operationFailed) {
+    if (operationMode == OPERATION_MODE_TEST && !quiet) {
+      fprintf(stderr, "\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n");
+    }
+    setExitReturnCode(2);
+    exit(exitReturnCode);
+  }
+}
+
+/**
+ @brief Liefert die Dateinamen aus der Liste aller Argumente beim Aufruf der Anwendung
+ 
+ */
+void getFilenames(LinkedListElementOfStrings* inputList, LinkedListElementOfStrings** fileList) {
+  LinkedListElementOfStrings* lastFile = NULL;
+  *fileList = NULL;
+  
+  int decode = 1;  // Flags werden zunächst decodiert (bis "--" auftaucht)
+  
+  for (LinkedListElementOfStrings* current = inputList;
+       current != NULL;
+       current = current->next) {
+    
+    if (ISFLAG(current, "--")) {
+      decode = 0;  // Keine weitere Flag-Verarbeitung nach "--"
+    }
+    else {
+      
+      if (!(decode && current->name[0] == '-')) {
+        // Füge zu Argument-Liste hinzu
+        LinkedListElementOfStrings* newFile = malloc(sizeof(LinkedListElementOfStrings));
+        newFile->name = current->name;
+        newFile->next = NULL;
+        
+        if (*fileList == NULL) {
+          *fileList = newFile;
+        }
+        else {
+          lastFile->next = newFile;
+        }
+        lastFile = newFile;
+      }
+    }
+  }
+}
+
+/**
+ Gibt den Speicher in der Liste frei. Dabei kann übergeben werden, ob auch die Elemente in der Struktur freigeben werden sollen.
+ */
+void freeList (LinkedListElementOfStrings* list, Bool deepClean) {
+  while (list != NULL) {
+    LinkedListElementOfStrings* next = list->next;
+    if (deepClean) {
+      if (list->name != NULL) {
+        free (list->name);
+      }
+    }
+    free(list);
+    list = next;
+  }
+}
+
+
 static struct sigaction sa;
+static struct sigaction saWithFileCleanUp;
 
 int cMain ( int argc, char *argv[] ) {
   Int32  i = 0;
@@ -1938,6 +2057,13 @@ int cMain ( int argc, char *argv[] ) {
   Char   *tmp;
   LinkedListElementOfStrings   *argumentList;
   LinkedListElementOfStrings   *argument;
+  /**
+   Mit Hilfe dieser Variable wird sichergestellt, dass bei den Argumenten
+   nur bis zum ersten Auftreten von "--" geprüft wird, ob mit einem
+   einzelnen "-" ein Flag eingeleitet wird.
+   Dadurch können auch Dateinamen die mit "-" beginnen bearbeitet
+   werden.
+   */
   Bool   decode;
   
   // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
@@ -1955,7 +2081,7 @@ int cMain ( int argc, char *argv[] ) {
   quiet                   = False;
   blockSize100k           = 9;
   testFailsExist          = False;
-  unzFailsExist           = False;
+  decompressFailsExist           = False;
   numFileNames            = 0;
   numFilesProcessed       = 0;
   workFactor              = 30;
@@ -1965,14 +2091,14 @@ int cMain ( int argc, char *argv[] ) {
   /*-- Set up signal handlers for mem access errors --*/
   // Struct initialisieren
   memset(&sa, 0, sizeof(sa));
-  // Handler-Funktion zuweisen (Achtung: sa_sigaction statt sa_handler)
-  sa.sa_sigaction = mySIGSEGVorSIGBUScatcher;
   // Flags setzen für erweiterte Signalinformationen
   sa.sa_flags = SA_SIGINFO;
   // Signalmaske leeren (keine zusätzlichen Signale blockieren)
   sigemptyset(&sa.sa_mask);
   
   
+  // Handler-Funktion zuweisen
+  sa.sa_sigaction = mySIGSEGVorSIGBUScatcher;
   // melde eine Call-Back Funktion an, wenn das Programm auf einen nicht zugewiesenen Speicher zugreifen will
   sigaction (SIGSEGV, &sa, NULL);
   // melde eine Call-Back Funktion an, wenn das Programm auf eine Variable zugreifen will die nicht korrekt im Speicher ausgerichtet ist
@@ -2269,116 +2395,60 @@ int cMain ( int argc, char *argv[] ) {
     }
   }
   
-  if (operationMode == OPERATION_MODE_COMPRESS && smallMode && blockSize100k > 2) {
+  // Prüfe, ob der smallMode gesetzt ist und komprimiert werden soll und die Blockgröße > 2 ist
+  if (smallMode && operationMode == OPERATION_MODE_COMPRESS && blockSize100k > 2) {
+    // setze die Blockgröße auf 2 (da ja smallMode = TRUE)
     blockSize100k = 2;
   }
-  
+  // Prüfe ob getestet werden soll und der Modus aber auf File2StandardOutput gesetzt ist
   if (operationMode == OPERATION_MODE_TEST && srcMode == SourceMode_File2StandardOutput) {
+    // gebe eine Fehlermeldung aus
     fprintf ( stderr, "%s: -c and -t cannot be used together.\n", progName );
+    // beende die Anwendung mit Fehlercode 0
     exit ( 1 );
   }
-  
+  // Prüfe ob der Modus auf File2StandardOutput gesetzt ist, die Anzahl der Dateinamen aber 0 ist
   if (srcMode == SourceMode_File2StandardOutput && numFileNames == 0) {
+    // setze den Modus auf StandardInput2StandardOutput
     srcMode = SourceMode_StandardInput2StandardOutput;
   }
-  
+  // Wenn der Modus nicht komprimieren ist
   if (operationMode != OPERATION_MODE_COMPRESS) {
+    // setze die Blockgröße auf 0
     blockSize100k = 0;
   }
-  
+  // Wenn der Modus auf File2File gesetzt ist
   if (srcMode == SourceMode_File2File) {
-    signal (SIGINT,  mySignalCatcher);
-    signal (SIGTERM, mySignalCatcher);
-    signal (SIGHUP,  mySignalCatcher);
-  }
-  
-  if (operationMode == OPERATION_MODE_COMPRESS) {
-    if (srcMode == SourceMode_StandardInput2StandardOutput) {
-      compress ( NULL );
-    }
-    else {
-      decode = True;
-      for (argument = argumentList; argument != NULL; argument = argument->next) {
-        if (ISFLAG(argument,"--")) {
-          decode = False;
-          continue;
-        }
-        if (argument->name[0] == '-' && decode) {
-          continue;
-        }
-        numFilesProcessed += 1;
-        compress ( argument->name );
-      }
-    }
-  }
-  else {
+    // Struct initialisieren
+    memset(&saWithFileCleanUp, 0, sizeof(saWithFileCleanUp));
+    // Flags setzen für erweiterte Signalinformationen
+    saWithFileCleanUp.sa_flags = SA_SIGINFO;
+    // Signalmaske leeren (keine zusätzlichen Signale blockieren)
+    sigemptyset(&saWithFileCleanUp.sa_mask);
     
-    if (operationMode == OPERATION_MODE_DECOMPRESS) {
-      unzFailsExist = False;
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        uncompress ( NULL );
-      }
-      else {
-        decode = True;
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          if (ISFLAG(argument,"--")) {
-            decode = False;
-            continue;
-          }
-          if (argument->name[0] == '-' && decode) {
-            continue;
-          }
-          numFilesProcessed += 1;
-          uncompress ( argument->name );
-        }
-      }
-      if (unzFailsExist) {
-        setExitReturnCode(2);
-        exit(exitReturnCode);
-      }
-    }
-    
-    else {
-      testFailsExist = False;
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        testf ( NULL );
-      }
-      else {
-        decode = True;
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          if (ISFLAG(argument,"--")) {
-            decode = False;
-            continue;
-          }
-          if (argument->name[0] == '-' && decode) {
-            continue;
-          }
-          numFilesProcessed += 1;
-          testf ( argument->name );
-        }
-      }
-      if (testFailsExist) {
-        if (!quiet) {
-          fprintf ( stderr, "\n" "You can use the `bzip2recover' program to attempt to recover\n" "data from undamaged sections of corrupted files.\n\n" );
-        }
-        setExitReturnCode(2);
-        exit(exitReturnCode);
-      }
-    }
+    // Handler-Funktion zuweisen (Achtung: sa_sigaction statt sa_handler)
+    saWithFileCleanUp.sa_sigaction = mySignalCatcher;
+
+    // Ergänze die Fehlerbehandlung um SIGINT
+    sigaction (SIGINT, &saWithFileCleanUp, NULL); // CTRL+C gedrückt
+    // Ergänze die Fehlerbehandlung um SIGTERM
+    sigaction (SIGTERM, &saWithFileCleanUp, NULL); // Prozess mit `kill` beendet
+    // Ergänze die Fehlerbehandlung um SIGHUP
+    sigaction (SIGHUP, &saWithFileCleanUp, NULL); // Terminalsession beendet
+    // Ergänze die Fehlerbehandlung um SIGQUIT
+    sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
   }
-  
-  /* Free the argument list memory to mollify leak detectors
-   (eg) Purify, Checker.  Serves no other useful purpose.
-   */
-  argument = argumentList;
-  while (argument != NULL) {
-    LinkedListElementOfStrings* aa2 = argument->next;
-    if (argument->name != NULL) {
-      free(argument->name);
-    }
-    free(argument);
-    argument = aa2;
-  }
+
+  // Halte die Dateien in einer eigenen Liste
+  LinkedListElementOfStrings* fileList = NULL;
+  // Trenne die Argumente in Flags und Dateien
+  getFilenames(argumentList, &fileList);
+  // Führe die eigentliche Programmaufgabe (komprimieren, dekomprimieren oder testen aus)
+  operate(fileList);
+
+  // Räume auf
+  freeList(argumentList, True);
+  freeList(fileList, False);
   
   return exitReturnCode;
 }
