@@ -928,7 +928,7 @@ static void handleIoErrorsAndExitApplication ( void ) {
 
 
 /*---------------------------------------------*/
-static void mySignalCatcher ( IntNative n ) {
+static void mySignalCatcher ( IntNative n, siginfo_t *info, void *context ) {
   fprintf ( stderr, "\n%s: Control-C or similar caught, quitting.\n", progName );
   cleanUpAndFailAndExitApplication(1);
 }
@@ -1931,6 +1931,7 @@ Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
 }
 
 static struct sigaction sa;
+static struct sigaction saWithFileCleanUp;
 
 int main ( int argc, char *argv[] ) {
   Int32  i = 0;
@@ -1965,14 +1966,14 @@ int main ( int argc, char *argv[] ) {
   /*-- Set up signal handlers for mem access errors --*/
   // Struct initialisieren
   memset(&sa, 0, sizeof(sa));
-  // Handler-Funktion zuweisen (Achtung: sa_sigaction statt sa_handler)
-  sa.sa_sigaction = mySIGSEGVorSIGBUScatcher;
   // Flags setzen für erweiterte Signalinformationen
   sa.sa_flags = SA_SIGINFO;
   // Signalmaske leeren (keine zusätzlichen Signale blockieren)
   sigemptyset(&sa.sa_mask);
   
   
+  // Handler-Funktion zuweisen
+  sa.sa_sigaction = mySIGSEGVorSIGBUScatcher;
   // melde eine Call-Back Funktion an, wenn das Programm auf einen nicht zugewiesenen Speicher zugreifen will
   sigaction (SIGSEGV, &sa, NULL);
   // melde eine Call-Back Funktion an, wenn das Programm auf eine Variable zugreifen will die nicht korrekt im Speicher ausgerichtet ist
@@ -2269,27 +2270,48 @@ int main ( int argc, char *argv[] ) {
     }
   }
   
-  if (operationMode == OPERATION_MODE_COMPRESS && smallMode && blockSize100k > 2) {
+  // Prüfe, ob der smallMode gesetzt ist und komprimiert werden soll und die Blockgröße > 2 ist
+  if (smallMode && operationMode == OPERATION_MODE_COMPRESS && blockSize100k > 2) {
+    // setze die Blockgröße auf 2 (da ja smallMode = TRUE)
     blockSize100k = 2;
   }
-  
+  // Prüfe ob getestet werden soll und der Modus aber auf File2StandardOutput gesetzt ist
   if (operationMode == OPERATION_MODE_TEST && srcMode == SourceMode_File2StandardOutput) {
+    // gebe eine Fehlermeldung aus
     fprintf ( stderr, "%s: -c and -t cannot be used together.\n", progName );
+    // beende die Anwendung mit Fehlercode 0
     exit ( 1 );
   }
-  
+  // Prüfe ob der Modus auf File2StandardOutput gesetzt ist, die Anzahl der Dateinamen aber 0 ist
   if (srcMode == SourceMode_File2StandardOutput && numFileNames == 0) {
+    // setze den Modus auf StandardInput2StandardOutput
     srcMode = SourceMode_StandardInput2StandardOutput;
   }
-  
+  // Wenn der Modus nicht komprimieren ist
   if (operationMode != OPERATION_MODE_COMPRESS) {
+    // setze die Blockgröße auf 0
     blockSize100k = 0;
   }
-  
+  // Wenn der Modus auf File2File gesetzt ist
   if (srcMode == SourceMode_File2File) {
-    signal (SIGINT,  mySignalCatcher);
-    signal (SIGTERM, mySignalCatcher);
-    signal (SIGHUP,  mySignalCatcher);
+    // Struct initialisieren
+    memset(&saWithFileCleanUp, 0, sizeof(saWithFileCleanUp));
+    // Flags setzen für erweiterte Signalinformationen
+    saWithFileCleanUp.sa_flags = SA_SIGINFO;
+    // Signalmaske leeren (keine zusätzlichen Signale blockieren)
+    sigemptyset(&saWithFileCleanUp.sa_mask);
+    
+    // Handler-Funktion zuweisen (Achtung: sa_sigaction statt sa_handler)
+    saWithFileCleanUp.sa_sigaction = mySignalCatcher;
+
+    // Ergänze die Fehlerbehandlung um SIGINT
+    sigaction (SIGINT, &saWithFileCleanUp, NULL); // CTRL+C gedrückt
+    // Ergänze die Fehlerbehandlung um SIGTERM
+    sigaction (SIGTERM, &saWithFileCleanUp, NULL); // Prozess mit `kill` beendet
+    // Ergänze die Fehlerbehandlung um SIGHUP
+    sigaction (SIGHUP, &saWithFileCleanUp, NULL); // Terminalsession beendet
+    // Ergänze die Fehlerbehandlung um SIGQUIT
+    sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
   }
   
   if (operationMode == OPERATION_MODE_COMPRESS) {
