@@ -899,9 +899,7 @@ static void printUnexpectedProgramStateAndExitApplication ( const Char* s ) {
 
 /*---------------------------------------------*/
 static void crcError ( void ) {
-  fprintf ( stderr,
-           "\n%s: Data integrity error when decompressing.\n",
-           progName );
+  fprintf ( stderr, "\n%s: Data integrity error when decompressing.\n", progName );
   showFileNames();
   cadvise();
   cleanUpAndFailAndExitApplication( 2 );
@@ -931,9 +929,7 @@ static void handleIoErrorsAndExitApplication ( void ) {
 
 /*---------------------------------------------*/
 static void mySignalCatcher ( IntNative n ) {
-  fprintf ( stderr,
-           "\n%s: Control-C or similar caught, quitting.\n",
-           progName );
+  fprintf ( stderr, "\n%s: Control-C or similar caught, quitting.\n", progName );
   cleanUpAndFailAndExitApplication(1);
 }
 

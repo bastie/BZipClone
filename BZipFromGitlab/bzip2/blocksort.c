@@ -414,8 +414,8 @@ static inline Bool mainGtU ( UInt32 i1, UInt32 i2, UChar* block, UInt16* quadran
         return (s1 > s2);
       }
       
-      i1++;
-      i2++;
+      i1 += 1;
+      i2 += 1;
     }
     
     if (i1 >= nblock) {
@@ -442,14 +442,7 @@ static inline Bool mainGtU ( UInt32 i1, UInt32 i2, UChar* block, UInt16* quadran
 --*/
 static const Int32 incs[14] = { 1, 4, 13, 40, 121, 364, 1093, 3280, 9841, 29524, 88573, 265720, 797161, 2391484 };
 
-static void mainSimpleSort ( UInt32* ptr,
-                      UChar*  block,
-                      UInt16* quadrant,
-                      Int32   nblock,
-                      Int32   lo,
-                      Int32   hi,
-                      Int32   d,
-                            Int32*  budget ) {
+static void mainSimpleSort ( UInt32* ptr, UChar* block, UInt16* quadrant, Int32 nblock, Int32 lo, Int32 hi, Int32 d, Int32* budget ) {
   Int32 i, j, h, bigN, hp;
   UInt32 v;
   
