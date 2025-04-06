@@ -196,14 +196,11 @@ void BZ2_hbAssignCodes ( Int32 *code, UChar *length, Int32 minLen, Int32 maxLen,
 
 
 /*---------------------------------------------------*/
-void BZ2_hbCreateDecodeTables ( Int32 *limit,
-                                Int32 *base,
-                                Int32 *perm,
-                                UChar *length,
-                                Int32 minLen,
-                                Int32 maxLen,
-                               Int32 alphaSize ) {
-  Int32 pp, i, j, vec;
+void BZ2_hbCreateDecodeTables ( Int32 *limit, Int32 *base, Int32 *perm, UChar *length, Int32 minLen, Int32 maxLen, Int32 alphaSize ) {
+  Int32 pp;
+  Int32 i;
+  Int32 j;
+  Int32 vec;
   
   pp = 0;
   for (i = minLen; i <= maxLen; i++) {

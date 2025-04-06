@@ -1652,7 +1652,7 @@ zzz:
 
 
 /*---------------------------------------------*/
-static void testf ( Char *name ) {
+static void testFile ( Char *name ) {
   FILE *inStr;
   Bool allOK;
   struct stat statBuf;
@@ -1930,6 +1930,125 @@ Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
   return (strcmp(aa->name, (s))==0);
 }
 
+/**
+ @brief Funktion, welche die eigentliche Verarbeitung anstößt.
+ 
+ @param argumentList
+ Verkette Liste die die Kommandozeilenparameter enthält.
+ 
+ @param decode
+ Mit Hilfe dieser Variable wird sichergestellt, dass bei den Argumenten
+ nur bis zum ersten Auftreten von "--" geprüft wird, ob mit einem
+ einzelnen "-" ein Flag eingeleitet wird.
+ Dadurch können auch Dateinamen die mit "-" beginnen bearbeitet
+ werden.
+ */
+void operate (LinkedListElementOfStrings *argumentList, Bool decode) {
+  // TODO: Besser wäre wenn nur eine Liste von Dateinamen übergeben wird, statt wie derzeit alle Parameter
+  LinkedListElementOfStrings *argument;
+  
+  switch (operationMode) {
+    case OPERATION_MODE_COMPRESS :
+      if (srcMode == SourceMode_StandardInput2StandardOutput) {
+        compress ( NULL );
+      }
+      else {
+        decode = True;
+        // für jedes Argument in der Liste
+        for (argument = argumentList; argument != NULL; argument = argument->next) {
+          // wenn das Argument = "--" ist
+          if (ISFLAG(argument,"--")) {
+            // setze einen Merker, dass alle nachfolgenden Argumente nicht mehr als Flags behandelt werden, wenn diese mit "-" beginnen. Dies ermöglicht Dateinamen mit, die mit "-" beginnen auch zu komprimieren.
+            decode = False;
+          }
+          else {
+            // Wenn das Argument mit "-" beginnt und noch kein "--" bisher als Argument angegeben war (also Flags decodiert werden)
+            if (!(argument->name[0] == '-' && decode)) {
+              // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
+              numFilesProcessed += 1;
+              // Rufe die Methode compress mit dem Dateinamen auf
+              compress ( argument->name );
+            }
+          }
+        }
+      }
+      break; // Ende von OPERATION_MODE_COMPRESS
+    case OPERATION_MODE_DECOMPRESS :
+      unzFailsExist = False;
+      // Wenn der Modus auf StandardInput2Standardoutput gesetzt ist
+      if (srcMode == SourceMode_StandardInput2StandardOutput) {
+        // Rufe uncompress ohne Dateinamen auf
+        uncompress ( NULL );
+      }
+      else {
+        decode = True;
+        // für jedes Argument in der Liste
+        for (argument = argumentList; argument != NULL; argument = argument->next) {
+          // wenn das Argument = "--" ist
+          if (ISFLAG(argument,"--")) {
+            // setze einen Merker, dass alle nachfolgenden Argumente nicht mehr als Flags behandelt werden, wenn diese mit "-" beginnen. Dies ermöglicht Dateinamen mit, die mit "-" beginnen auch zu komprimieren.
+            decode = False;
+          }
+          else {
+            // Wenn das Argument mit "-" beginnt und noch kein "--" bisher als Argument angegeben war (also Flags decodiert werden)
+            if (!(argument->name[0] == '-' && decode)) {
+              // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
+              numFilesProcessed += 1;
+              // Rufe die Methode uncompress mit dem Dateinamen auf
+              uncompress ( argument->name );
+            }
+          }
+        }
+      }
+      if (unzFailsExist) {
+        setExitReturnCode(2);
+        exit(exitReturnCode);
+      }
+      break; // Ende von OPERATION_MODE_DECOMPRESS
+    case OPERATION_MODE_TEST :
+      testFailsExist = False;
+      if (srcMode == SourceMode_StandardInput2StandardOutput) {
+        testFile ( NULL );
+      }
+      else {
+        decode = True;
+        // für jedes Argument in der Liste
+        for (argument = argumentList; argument != NULL; argument = argument->next) {
+          // wenn das Argument = "--" ist
+          if (ISFLAG(argument,"--")) {
+            // setze einen Merker, dass alle nachfolgenden Argumente nicht mehr als Flags behandelt werden, wenn diese mit "-" beginnen. Dies ermöglicht Dateinamen mit, die mit "-" beginnen auch zu komprimieren.
+            decode = False;
+          }
+          else {
+            // Wenn das Argument mit "-" beginnt und noch kein "--" bisher als Argument angegeben war (also Flags decodiert werden)
+            if (!(argument->name[0] == '-' && decode)) {
+              // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
+              numFilesProcessed += 1;
+              // Rufe die Methode testFile mit dem Dateinamen auf
+              testFile ( argument->name );
+            }
+          }
+        }
+      }
+      if (testFailsExist) {
+        if (!quiet) {
+          fprintf ( stderr, "\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n" );
+        }
+        setExitReturnCode(2);
+        exit(exitReturnCode);
+      }
+      break; // Ende von OPERATION_MODE_TEST
+    // In anderen Fällen
+    default:
+      // Gebe eine Fehlermeldung aus
+      fprintf ( stderr, "\n Unsupported operation. Only compress, decompress and test are supported.\n");
+      // Setze den Fehlercode auf 1
+      setExitReturnCode(1);
+      // Beende die Anwendung
+      exit(exitReturnCode);
+  }
+}
+
 static struct sigaction sa;
 static struct sigaction saWithFileCleanUp;
 
@@ -1939,6 +2058,13 @@ int main ( int argc, char *argv[] ) {
   Char   *tmp;
   LinkedListElementOfStrings   *argumentList;
   LinkedListElementOfStrings   *argument;
+  /**
+   Mit Hilfe dieser Variable wird sichergestellt, dass bei den Argumenten
+   nur bis zum ersten Auftreten von "--" geprüft wird, ob mit einem
+   einzelnen "-" ein Flag eingeleitet wird.
+   Dadurch können auch Dateinamen die mit "-" beginnen bearbeitet
+   werden.
+   */
   Bool   decode;
   
   // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
@@ -2313,84 +2439,10 @@ int main ( int argc, char *argv[] ) {
     // Ergänze die Fehlerbehandlung um SIGQUIT
     sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
   }
-  
-  switch (operationMode) {
-    case OPERATION_MODE_COMPRESS :
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        compress ( NULL );
-      }
-      else {
-        decode = True;
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          if (ISFLAG(argument,"--")) {
-            decode = False;
-            continue;
-          }
-          if (argument->name[0] == '-' && decode) {
-            continue;
-          }
-          numFilesProcessed += 1;
-          compress ( argument->name );
-        }
-      }
-      break;
-    case OPERATION_MODE_DECOMPRESS :
-      unzFailsExist = False;
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        uncompress ( NULL );
-      }
-      else {
-        decode = True;
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          if (ISFLAG(argument,"--")) {
-            decode = False;
-            continue;
-          }
-          if (argument->name[0] == '-' && decode) {
-            continue;
-          }
-          numFilesProcessed += 1;
-          uncompress ( argument->name );
-        }
-      }
-      if (unzFailsExist) {
-        setExitReturnCode(2);
-        exit(exitReturnCode);
-      }
-      break;
-    case OPERATION_MODE_TEST :
-      testFailsExist = False;
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        testf ( NULL );
-      }
-      else {
-        decode = True;
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          if (ISFLAG(argument,"--")) {
-            decode = False;
-            continue;
-          }
-          if (argument->name[0] == '-' && decode) {
-            continue;
-          }
-          numFilesProcessed += 1;
-          testf ( argument->name );
-        }
-      }
-      if (testFailsExist) {
-        if (!quiet) {
-          fprintf ( stderr, "\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n" );
-        }
-        setExitReturnCode(2);
-        exit(exitReturnCode);
-      }
-      break;
-    default:
-      fprintf ( stderr, "\n Unsupported operation. Only compress, decompress and test are supported.\n");
-      setExitReturnCode(1);
-      exit(exitReturnCode);
-  }
-  
+
+  // Führe die eigentliche Programmaufgabe (komprimieren, dekomprimieren oder testen aus)
+  operate(argumentList,decode);
+
   // Räume auf
   /* Free the argument list memory to mollify leak detectors
    (eg) Purify, Checker.  Serves no other useful purpose.
