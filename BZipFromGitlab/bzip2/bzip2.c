@@ -1943,9 +1943,8 @@ Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
  Dadurch können auch Dateinamen die mit "-" beginnen bearbeitet
  werden.
  */
-void operate (LinkedListElementOfStrings *argumentList, Bool decode) {
-  // TODO: Besser wäre wenn nur eine Liste von Dateinamen übergeben wird, statt wie derzeit alle Parameter
-  LinkedListElementOfStrings *argument;
+void operate (LinkedListElementOfStrings *fileList) {
+  LinkedListElementOfStrings *file;
   
   switch (operationMode) {
     case OPERATION_MODE_COMPRESS :
@@ -1953,23 +1952,12 @@ void operate (LinkedListElementOfStrings *argumentList, Bool decode) {
         compress ( NULL );
       }
       else {
-        decode = True;
         // für jedes Argument in der Liste
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          // wenn das Argument = "--" ist
-          if (ISFLAG(argument,"--")) {
-            // setze einen Merker, dass alle nachfolgenden Argumente nicht mehr als Flags behandelt werden, wenn diese mit "-" beginnen. Dies ermöglicht Dateinamen mit, die mit "-" beginnen auch zu komprimieren.
-            decode = False;
-          }
-          else {
-            // Wenn das Argument mit "-" beginnt und noch kein "--" bisher als Argument angegeben war (also Flags decodiert werden)
-            if (!(argument->name[0] == '-' && decode)) {
-              // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
-              numFilesProcessed += 1;
-              // Rufe die Methode compress mit dem Dateinamen auf
-              compress ( argument->name );
-            }
-          }
+        for (file = fileList; file != NULL; file = file->next) {
+          // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
+          numFilesProcessed += 1;
+          // Rufe die Methode compress mit dem Dateinamen auf
+          compress ( file->name );
         }
       }
       break; // Ende von OPERATION_MODE_COMPRESS
@@ -1981,23 +1969,11 @@ void operate (LinkedListElementOfStrings *argumentList, Bool decode) {
         uncompress ( NULL );
       }
       else {
-        decode = True;
         // für jedes Argument in der Liste
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          // wenn das Argument = "--" ist
-          if (ISFLAG(argument,"--")) {
-            // setze einen Merker, dass alle nachfolgenden Argumente nicht mehr als Flags behandelt werden, wenn diese mit "-" beginnen. Dies ermöglicht Dateinamen mit, die mit "-" beginnen auch zu komprimieren.
-            decode = False;
-          }
-          else {
-            // Wenn das Argument mit "-" beginnt und noch kein "--" bisher als Argument angegeben war (also Flags decodiert werden)
-            if (!(argument->name[0] == '-' && decode)) {
-              // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
-              numFilesProcessed += 1;
-              // Rufe die Methode uncompress mit dem Dateinamen auf
-              uncompress ( argument->name );
-            }
-          }
+        for (file = fileList; file != NULL; file = file->next) {
+          numFilesProcessed += 1;
+          // Rufe die Methode uncompress mit dem Dateinamen auf
+          uncompress ( file->name );
         }
       }
       if (unzFailsExist) {
@@ -2011,23 +1987,12 @@ void operate (LinkedListElementOfStrings *argumentList, Bool decode) {
         testFile ( NULL );
       }
       else {
-        decode = True;
         // für jedes Argument in der Liste
-        for (argument = argumentList; argument != NULL; argument = argument->next) {
-          // wenn das Argument = "--" ist
-          if (ISFLAG(argument,"--")) {
-            // setze einen Merker, dass alle nachfolgenden Argumente nicht mehr als Flags behandelt werden, wenn diese mit "-" beginnen. Dies ermöglicht Dateinamen mit, die mit "-" beginnen auch zu komprimieren.
-            decode = False;
-          }
-          else {
-            // Wenn das Argument mit "-" beginnt und noch kein "--" bisher als Argument angegeben war (also Flags decodiert werden)
-            if (!(argument->name[0] == '-' && decode)) {
-              // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
-              numFilesProcessed += 1;
-              // Rufe die Methode testFile mit dem Dateinamen auf
-              testFile ( argument->name );
-            }
-          }
+        for (file = fileList; file != NULL; file = file->next) {
+          // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
+          numFilesProcessed += 1;
+          // Rufe die Methode testFile mit dem Dateinamen auf
+          testFile ( file->name );
         }
       }
       if (testFailsExist) {
@@ -2050,10 +2015,8 @@ void operate (LinkedListElementOfStrings *argumentList, Bool decode) {
 }
 
 
-void splitArguments(LinkedListElementOfStrings* inputList, LinkedListElementOfStrings** flagList, LinkedListElementOfStrings** fileList) {
-  LinkedListElementOfStrings* lastFlag = NULL;
-  LinkedListElementOfStrings* lastArg = NULL;
-  *flagList = NULL;
+void getFilenames(LinkedListElementOfStrings* inputList, LinkedListElementOfStrings** fileList) {
+  LinkedListElementOfStrings* lastFile = NULL;
   *fileList = NULL;
   
   int decode = 1;  // Flags werden zunächst decodiert (bis "--" auftaucht)
@@ -2064,35 +2027,23 @@ void splitArguments(LinkedListElementOfStrings* inputList, LinkedListElementOfSt
     
     if (ISFLAG(current, "--")) {
       decode = 0;  // Keine weitere Flag-Verarbeitung nach "--"
-      continue;
     }
-    
-    if (decode && current->name[0] == '-') {
-      // Füge zu Flag-Liste hinzu
-      LinkedListElementOfStrings* newFlag = malloc(sizeof(LinkedListElementOfStrings));
-      newFlag->name = current->name;
-      newFlag->next = NULL;
+    else {
       
-      if (*flagList == NULL) {
-        *flagList = newFlag;
+      if (!(decode && current->name[0] == '-')) {
+        // Füge zu Argument-Liste hinzu
+        LinkedListElementOfStrings* newFile = malloc(sizeof(LinkedListElementOfStrings));
+        newFile->name = current->name;
+        newFile->next = NULL;
+        
+        if (*fileList == NULL) {
+          *fileList = newFile;
+        }
+        else {
+          lastFile->next = newFile;
+        }
+        lastFile = newFile;
       }
-      else {
-        lastFlag->next = newFlag;
-      }
-      lastFlag = newFlag;
-    } else {
-      // Füge zu Argument-Liste hinzu
-      LinkedListElementOfStrings* newArg = malloc(sizeof(LinkedListElementOfStrings));
-      newArg->name = current->name;
-      newArg->next = NULL;
-      
-      if (*fileList == NULL) {
-        *fileList = newArg;
-      }
-      else {
-        lastArg->next = newArg;
-      }
-      lastArg = newArg;
     }
   }
 }
@@ -2502,18 +2453,15 @@ int main ( int argc, char *argv[] ) {
     sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
   }
 
-  // Halte die Flags in einer eigenen Liste
-  LinkedListElementOfStrings* flagList = NULL; // TODO: Diese Liste wird gar nicht benötigt
   // Halte die Dateien in einer eigenen Liste
   LinkedListElementOfStrings* fileList = NULL;
   // Trenne die Argumente in Flags und Dateien
-  splitArguments(argumentList, &flagList, &fileList);
+  getFilenames(argumentList, &fileList);
   // Führe die eigentliche Programmaufgabe (komprimieren, dekomprimieren oder testen aus)
-  operate(argumentList,decode);
+  operate(fileList);
 
   // Räume auf
   freeList(argumentList, True);
-  freeList(flagList, False);
   freeList(fileList, False);
   
   return exitReturnCode;
