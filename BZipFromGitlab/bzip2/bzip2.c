@@ -2049,6 +2049,68 @@ void operate (LinkedListElementOfStrings *argumentList, Bool decode) {
   }
 }
 
+
+void splitArguments(LinkedListElementOfStrings* inputList, LinkedListElementOfStrings** flagList, LinkedListElementOfStrings** fileList) {
+  LinkedListElementOfStrings* lastFlag = NULL;
+  LinkedListElementOfStrings* lastArg = NULL;
+  *flagList = NULL;
+  *fileList = NULL;
+  
+  int decode = 1;  // Flags werden zunächst decodiert (bis "--" auftaucht)
+  
+  for (LinkedListElementOfStrings* current = inputList;
+       current != NULL;
+       current = current->next) {
+    
+    if (ISFLAG(current, "--")) {
+      decode = 0;  // Keine weitere Flag-Verarbeitung nach "--"
+      continue;
+    }
+    
+    if (decode && current->name[0] == '-') {
+      // Füge zu Flag-Liste hinzu
+      LinkedListElementOfStrings* newFlag = malloc(sizeof(LinkedListElementOfStrings));
+      newFlag->name = current->name;
+      newFlag->next = NULL;
+      
+      if (*flagList == NULL) {
+        *flagList = newFlag;
+      }
+      else {
+        lastFlag->next = newFlag;
+      }
+      lastFlag = newFlag;
+    } else {
+      // Füge zu Argument-Liste hinzu
+      LinkedListElementOfStrings* newArg = malloc(sizeof(LinkedListElementOfStrings));
+      newArg->name = current->name;
+      newArg->next = NULL;
+      
+      if (*fileList == NULL) {
+        *fileList = newArg;
+      }
+      else {
+        lastArg->next = newArg;
+      }
+      lastArg = newArg;
+    }
+  }
+}
+
+void freeList (LinkedListElementOfStrings* list, Bool deepClean) {
+  while (list != NULL) {
+    LinkedListElementOfStrings* next = list->next;
+    if (deepClean) {
+      if (list->name != NULL) {
+        free (list->name);
+      }
+    }
+    free(list);
+    list = next;
+  }
+}
+
+
 static struct sigaction sa;
 static struct sigaction saWithFileCleanUp;
 
@@ -2440,22 +2502,19 @@ int main ( int argc, char *argv[] ) {
     sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
   }
 
+  // Halte die Flags in einer eigenen Liste
+  LinkedListElementOfStrings* flagList = NULL; // TODO: Diese Liste wird gar nicht benötigt
+  // Halte die Dateien in einer eigenen Liste
+  LinkedListElementOfStrings* fileList = NULL;
+  // Trenne die Argumente in Flags und Dateien
+  splitArguments(argumentList, &flagList, &fileList);
   // Führe die eigentliche Programmaufgabe (komprimieren, dekomprimieren oder testen aus)
   operate(argumentList,decode);
 
   // Räume auf
-  /* Free the argument list memory to mollify leak detectors
-   (eg) Purify, Checker.  Serves no other useful purpose.
-   */
-  argument = argumentList;
-  while (argument != NULL) {
-    LinkedListElementOfStrings* aa2 = argument->next;
-    if (argument->name != NULL) {
-      free(argument->name);
-    }
-    free(argument);
-    argument = aa2;
-  }
+  freeList(argumentList, True);
+  freeList(flagList, False);
+  freeList(fileList, False);
   
   return exitReturnCode;
 }
