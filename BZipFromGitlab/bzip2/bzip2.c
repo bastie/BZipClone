@@ -935,7 +935,7 @@ static void mySignalCatcher ( IntNative n ) {
 
 
 /*---------------------------------------------*/
-static void mySIGSEGVorSIGBUScatcher ( IntNative n ) {
+static void mySIGSEGVorSIGBUScatcher ( IntNative n, siginfo_t *info, void *context ) {
   const char *msg;
   if (operationMode == OPERATION_MODE_COMPRESS) {
     msg = ": Caught a SIGSEGV or SIGBUS whilst compressing.\n"
@@ -1930,6 +1930,7 @@ Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
   return (strcmp(aa->name, (s))==0);
 }
 
+static struct sigaction sa;
 
 int main ( int argc, char *argv[] ) {
   Int32  i = 0;
@@ -1962,10 +1963,20 @@ int main ( int argc, char *argv[] ) {
   exitReturnCode               = 0;
   
   /*-- Set up signal handlers for mem access errors --*/
+  // Struct initialisieren
+  memset(&sa, 0, sizeof(sa));
+  // Handler-Funktion zuweisen (Achtung: sa_sigaction statt sa_handler)
+  sa.sa_sigaction = mySIGSEGVorSIGBUScatcher;
+  // Flags setzen für erweiterte Signalinformationen
+  sa.sa_flags = SA_SIGINFO;
+  // Signalmaske leeren (keine zusätzlichen Signale blockieren)
+  sigemptyset(&sa.sa_mask);
+  
+  
   // melde eine Call-Back Funktion an, wenn das Programm auf einen nicht zugewiesenen Speicher zugreifen will
-  signal (SIGSEGV, mySIGSEGVorSIGBUScatcher);
+  sigaction (SIGSEGV, &sa, NULL);
   // melde eine Call-Back Funktion an, wenn das Programm auf eine Variable zugreifen will die nicht korrekt im Speicher ausgerichtet ist
-  signal (SIGBUS,  mySIGSEGVorSIGBUScatcher);
+  sigaction (SIGBUS, &sa, NULL);
   
   // setze `inputFilename` auf "(none)"
   copyFileName ( inputFilename,  (Char*)"(none)" );
