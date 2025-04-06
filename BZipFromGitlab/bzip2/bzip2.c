@@ -83,8 +83,19 @@ typedef int IntNative;
 /*---------------------------------------------------*/
 
 Bool    keepInputFiles, smallMode, deleteOutputOnInterrupt;
-Bool    forceOverwrite, testFailsExist, unzFailsExist;
-Bool quiet;
+/**
+ Flag, ob die Datei(en) überschrieben werden sollen.
+ */
+Bool    forceOverwrite;
+/**
+ Flag, ob es Fehler beim Testen der Datei(en) gab.
+ */
+Bool    testFailsExist;
+/**
+ Flag, ob es Fehler beim Dekomprimieren der Datei(en) gab.
+ */
+Bool    decompressFailsExist;
+Bool    quiet;
 Int32   numFileNames, numFilesProcessed, blockSize100k;
 Int32   exitReturnCode;
 
@@ -1635,7 +1646,7 @@ zzz:
     }
   }
   else {
-    unzFailsExist = True;
+    decompressFailsExist = True;
     deleteOutputOnInterrupt = False;
     if ( srcMode == SourceMode_File2File ) {
       IntNative retVal = remove ( outputFilename );
@@ -1933,88 +1944,60 @@ Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
 /**
  @brief Funktion, welche die eigentliche Verarbeitung anstößt.
  
- @param argumentList
+ @param fileList
  Verkette Liste die die Kommandozeilenparameter enthält.
- 
- @param decode
- Mit Hilfe dieser Variable wird sichergestellt, dass bei den Argumenten
- nur bis zum ersten Auftreten von "--" geprüft wird, ob mit einem
- einzelnen "-" ein Flag eingeleitet wird.
- Dadurch können auch Dateinamen die mit "-" beginnen bearbeitet
- werden.
  */
-void operate (LinkedListElementOfStrings *fileList) {
+void operate(LinkedListElementOfStrings *fileList) {
   LinkedListElementOfStrings *file;
+  Bool operationFailed = False;
+  void (*operationFunc)(char*) = NULL;
   
+  // Setze die entsprechende Operationsfunktion basierend auf dem Modus auf den passenden Funktionspointer
   switch (operationMode) {
-    case OPERATION_MODE_COMPRESS :
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        compress ( NULL );
-      }
-      else {
-        // für jedes Argument in der Liste
-        for (file = fileList; file != NULL; file = file->next) {
-          // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
-          numFilesProcessed += 1;
-          // Rufe die Methode compress mit dem Dateinamen auf
-          compress ( file->name );
-        }
-      }
-      break; // Ende von OPERATION_MODE_COMPRESS
-    case OPERATION_MODE_DECOMPRESS :
-      unzFailsExist = False;
-      // Wenn der Modus auf StandardInput2Standardoutput gesetzt ist
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        // Rufe uncompress ohne Dateinamen auf
-        uncompress ( NULL );
-      }
-      else {
-        // für jedes Argument in der Liste
-        for (file = fileList; file != NULL; file = file->next) {
-          numFilesProcessed += 1;
-          // Rufe die Methode uncompress mit dem Dateinamen auf
-          uncompress ( file->name );
-        }
-      }
-      if (unzFailsExist) {
-        setExitReturnCode(2);
-        exit(exitReturnCode);
-      }
-      break; // Ende von OPERATION_MODE_DECOMPRESS
-    case OPERATION_MODE_TEST :
-      testFailsExist = False;
-      if (srcMode == SourceMode_StandardInput2StandardOutput) {
-        testFile ( NULL );
-      }
-      else {
-        // für jedes Argument in der Liste
-        for (file = fileList; file != NULL; file = file->next) {
-          // Erhöhe die Anzahl der Dateien die bearbeitet werden um 1
-          numFilesProcessed += 1;
-          // Rufe die Methode testFile mit dem Dateinamen auf
-          testFile ( file->name );
-        }
-      }
-      if (testFailsExist) {
-        if (!quiet) {
-          fprintf ( stderr, "\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n" );
-        }
-        setExitReturnCode(2);
-        exit(exitReturnCode);
-      }
-      break; // Ende von OPERATION_MODE_TEST
-    // In anderen Fällen
+    case OPERATION_MODE_COMPRESS:
+      operationFunc = compress;
+      break;
+    case OPERATION_MODE_DECOMPRESS:
+      operationFunc = uncompress;
+      break;
+    case OPERATION_MODE_TEST:
+      operationFunc = testFile;
+      break;
     default:
-      // Gebe eine Fehlermeldung aus
-      fprintf ( stderr, "\n Unsupported operation. Only compress, decompress and test are supported.\n");
-      // Setze den Fehlercode auf 1
+      fprintf(stderr, "\n Unsupported operation. Only compress, decompress and test are supported.\n");
       setExitReturnCode(1);
-      // Beende die Anwendung
       exit(exitReturnCode);
+  }
+  
+  // Standard Input/Output Fall
+  if (srcMode == SourceMode_StandardInput2StandardOutput) {
+    operationFunc(NULL);
+  }
+  // Dateilisten Fall
+  else {
+    for (file = fileList; file != NULL; file = file->next) {
+      numFilesProcessed += 1;
+      operationFunc(file->name);
+    }
+  }
+  
+  // Kam es zu einem Fehler (bei decompress oder test?
+  operationFailed = decompressFailsExist + testFailsExist; // MARK: c-specific, Bool is true if value>0
+  
+  // Fehlerbehandlung für Decompress und Test
+  if (operationFailed) {
+    if (operationMode == OPERATION_MODE_TEST && !quiet) {
+      fprintf(stderr, "\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n");
+    }
+    setExitReturnCode(2);
+    exit(exitReturnCode);
   }
 }
 
-
+/**
+ @brief Liefert die Dateinamen aus der Liste aller Argumente beim Aufruf der Anwendung
+ 
+ */
 void getFilenames(LinkedListElementOfStrings* inputList, LinkedListElementOfStrings** fileList) {
   LinkedListElementOfStrings* lastFile = NULL;
   *fileList = NULL;
@@ -2048,6 +2031,9 @@ void getFilenames(LinkedListElementOfStrings* inputList, LinkedListElementOfStri
   }
 }
 
+/**
+ Gibt den Speicher in der Liste frei. Dabei kann übergeben werden, ob auch die Elemente in der Struktur freigeben werden sollen.
+ */
 void freeList (LinkedListElementOfStrings* list, Bool deepClean) {
   while (list != NULL) {
     LinkedListElementOfStrings* next = list->next;
@@ -2095,7 +2081,7 @@ int main ( int argc, char *argv[] ) {
   quiet                   = False;
   blockSize100k           = 9;
   testFailsExist          = False;
-  unzFailsExist           = False;
+  decompressFailsExist           = False;
   numFileNames            = 0;
   numFilesProcessed       = 0;
   workFactor              = 30;
