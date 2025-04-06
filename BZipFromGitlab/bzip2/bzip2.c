@@ -2314,28 +2314,27 @@ int main ( int argc, char *argv[] ) {
     sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
   }
   
-  if (operationMode == OPERATION_MODE_COMPRESS) {
-    if (srcMode == SourceMode_StandardInput2StandardOutput) {
-      compress ( NULL );
-    }
-    else {
-      decode = True;
-      for (argument = argumentList; argument != NULL; argument = argument->next) {
-        if (ISFLAG(argument,"--")) {
-          decode = False;
-          continue;
-        }
-        if (argument->name[0] == '-' && decode) {
-          continue;
-        }
-        numFilesProcessed += 1;
-        compress ( argument->name );
+  switch (operationMode) {
+    case OPERATION_MODE_COMPRESS :
+      if (srcMode == SourceMode_StandardInput2StandardOutput) {
+        compress ( NULL );
       }
-    }
-  }
-  else {
-    
-    if (operationMode == OPERATION_MODE_DECOMPRESS) {
+      else {
+        decode = True;
+        for (argument = argumentList; argument != NULL; argument = argument->next) {
+          if (ISFLAG(argument,"--")) {
+            decode = False;
+            continue;
+          }
+          if (argument->name[0] == '-' && decode) {
+            continue;
+          }
+          numFilesProcessed += 1;
+          compress ( argument->name );
+        }
+      }
+      break;
+    case OPERATION_MODE_DECOMPRESS :
       unzFailsExist = False;
       if (srcMode == SourceMode_StandardInput2StandardOutput) {
         uncompress ( NULL );
@@ -2358,9 +2357,8 @@ int main ( int argc, char *argv[] ) {
         setExitReturnCode(2);
         exit(exitReturnCode);
       }
-    }
-    
-    else {
+      break;
+    case OPERATION_MODE_TEST :
       testFailsExist = False;
       if (srcMode == SourceMode_StandardInput2StandardOutput) {
         testf ( NULL );
@@ -2381,14 +2379,19 @@ int main ( int argc, char *argv[] ) {
       }
       if (testFailsExist) {
         if (!quiet) {
-          fprintf ( stderr, "\n" "You can use the `bzip2recover' program to attempt to recover\n" "data from undamaged sections of corrupted files.\n\n" );
+          fprintf ( stderr, "\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n" );
         }
         setExitReturnCode(2);
         exit(exitReturnCode);
       }
-    }
+      break;
+    default:
+      fprintf ( stderr, "\n Unsupported operation. Only compress, decompress and test are supported.\n");
+      setExitReturnCode(1);
+      exit(exitReturnCode);
   }
   
+  // Räume auf
   /* Free the argument list memory to mollify leak detectors
    (eg) Purify, Checker.  Serves no other useful purpose.
    */
