@@ -1931,7 +1931,7 @@ Bool ISFLAG(LinkedListElementOfStrings *aa, Char* s) {
 }
 
 
-int main ( int argc, char *argv[] ) {
+int cMain ( int argc, char *argv[] ) {
   Int32  i = 0;
   Int32  j = 0;
   Char   *tmp;
