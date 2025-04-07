@@ -2047,9 +2047,61 @@ void freeList (LinkedListElementOfStrings* list, Bool deepClean) {
   }
 }
 
+/// @brief
+/// Prüft die Größen der C-Datentypen
+Bool isCTypeSizesFits2BZip(void) {
+  return (
+          sizeof(Int32) != 4 || sizeof(UInt32) != 4  ||
+          sizeof(Int16) != 2 || sizeof(UInt16) != 2  ||
+          sizeof(Char)  != 1 || sizeof(UChar)  != 1
+  );
+}
+
 
 static struct sigaction sa;
+
+void registerSignalHandlers4MemErrors (void) {
+  // Struct initialisieren
+  memset(&sa, 0, sizeof(sa));
+  // Flags setzen für erweiterte Signalinformationen
+  sa.sa_flags = SA_SIGINFO;
+  // Signalmaske leeren (keine zusätzlichen Signale blockieren)
+  sigemptyset(&sa.sa_mask);
+  
+  
+  // Handler-Funktion zuweisen
+  sa.sa_sigaction = mySIGSEGVorSIGBUScatcher;
+  // melde eine Call-Back Funktion an, wenn das Programm auf einen nicht zugewiesenen Speicher zugreifen will
+  sigaction (SIGSEGV, &sa, NULL);
+  // melde eine Call-Back Funktion an, wenn das Programm auf eine Variable zugreifen will die nicht korrekt im Speicher ausgerichtet ist
+  sigaction (SIGBUS, &sa, NULL);
+  
+}
+
 static struct sigaction saWithFileCleanUp;
+void registerSignalHandlers4File2FileOperation (void) {
+  // Struct initialisieren
+  memset(&saWithFileCleanUp, 0, sizeof(saWithFileCleanUp));
+  // Flags setzen für erweiterte Signalinformationen
+  saWithFileCleanUp.sa_flags = SA_SIGINFO;
+  // Signalmaske leeren (keine zusätzlichen Signale blockieren)
+  sigemptyset(&saWithFileCleanUp.sa_mask);
+  
+  // Handler-Funktion zuweisen
+  saWithFileCleanUp.sa_sigaction = mySignalCatcher;
+  
+  // Ergänze die Fehlerbehandlung um SIGINT
+  sigaction (SIGINT, &saWithFileCleanUp, NULL); // CTRL+C gedrückt
+  
+  // Ergänze die Fehlerbehandlung um SIGTERM
+  sigaction (SIGTERM, &saWithFileCleanUp, NULL); // Prozess mit `kill` beendet
+  
+  // Ergänze die Fehlerbehandlung um SIGHUP
+  sigaction (SIGHUP, &saWithFileCleanUp, NULL); // Terminalsession beendet
+  
+  // Ergänze die Fehlerbehandlung um SIGQUIT
+  sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
+}
 
 int main ( int argc, char *argv[] ) {
   Int32  i = 0;
@@ -2067,9 +2119,7 @@ int main ( int argc, char *argv[] ) {
   Bool   decode;
   
   // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
-  if (sizeof(Int32) != 4 || sizeof(UInt32) != 4  ||
-      sizeof(Int16) != 2 || sizeof(UInt16) != 2  ||
-      sizeof(Char)  != 1 || sizeof(UChar)  != 1) {
+  if (isCTypeSizesFits2BZip()) {
     printConfigErrorAndExitApplication();
   }
   
@@ -2081,29 +2131,16 @@ int main ( int argc, char *argv[] ) {
   quiet                   = False;
   blockSize100k           = 9;
   testFailsExist          = False;
-  decompressFailsExist           = False;
+  decompressFailsExist    = False;
   numFileNames            = 0;
   numFilesProcessed       = 0;
   workFactor              = 30;
   deleteOutputOnInterrupt = False;
-  exitReturnCode               = 0;
+  exitReturnCode          = 0;
   
   /*-- Set up signal handlers for mem access errors --*/
-  // Struct initialisieren
-  memset(&sa, 0, sizeof(sa));
-  // Flags setzen für erweiterte Signalinformationen
-  sa.sa_flags = SA_SIGINFO;
-  // Signalmaske leeren (keine zusätzlichen Signale blockieren)
-  sigemptyset(&sa.sa_mask);
-  
-  
-  // Handler-Funktion zuweisen
-  sa.sa_sigaction = mySIGSEGVorSIGBUScatcher;
-  // melde eine Call-Back Funktion an, wenn das Programm auf einen nicht zugewiesenen Speicher zugreifen will
-  sigaction (SIGSEGV, &sa, NULL);
-  // melde eine Call-Back Funktion an, wenn das Programm auf eine Variable zugreifen will die nicht korrekt im Speicher ausgerichtet ist
-  sigaction (SIGBUS, &sa, NULL);
-  
+  registerSignalHandlers4MemErrors();
+
   // setze `inputFilename` auf "(none)"
   copyFileName ( inputFilename,  (Char*)"(none)" );
   // setze `outputFilename` auf "(none)"
@@ -2161,7 +2198,7 @@ int main ( int argc, char *argv[] ) {
           // setze den Wert von longestFilname auf den Wert der der Länge des Argumentes entspricht
           longestFilename = (Int32)strlen(argument->name);
         }
-        // sonst, also der Wert in longestFilname >= der Länge des Argumentes ist
+        // sonst, also der Wert in longestFilename >= der Länge des Argumentes ist
         else {
           // mache nichts
         }
@@ -2419,24 +2456,7 @@ int main ( int argc, char *argv[] ) {
   }
   // Wenn der Modus auf File2File gesetzt ist
   if (srcMode == SourceMode_File2File) {
-    // Struct initialisieren
-    memset(&saWithFileCleanUp, 0, sizeof(saWithFileCleanUp));
-    // Flags setzen für erweiterte Signalinformationen
-    saWithFileCleanUp.sa_flags = SA_SIGINFO;
-    // Signalmaske leeren (keine zusätzlichen Signale blockieren)
-    sigemptyset(&saWithFileCleanUp.sa_mask);
-    
-    // Handler-Funktion zuweisen (Achtung: sa_sigaction statt sa_handler)
-    saWithFileCleanUp.sa_sigaction = mySignalCatcher;
-
-    // Ergänze die Fehlerbehandlung um SIGINT
-    sigaction (SIGINT, &saWithFileCleanUp, NULL); // CTRL+C gedrückt
-    // Ergänze die Fehlerbehandlung um SIGTERM
-    sigaction (SIGTERM, &saWithFileCleanUp, NULL); // Prozess mit `kill` beendet
-    // Ergänze die Fehlerbehandlung um SIGHUP
-    sigaction (SIGHUP, &saWithFileCleanUp, NULL); // Terminalsession beendet
-    // Ergänze die Fehlerbehandlung um SIGQUIT
-    sigaction (SIGQUIT, &saWithFileCleanUp, NULL); // Prozess mit kill -3 oder CTRL+\ beendet
+    registerSignalHandlers4File2FileOperation();
   }
 
   // Halte die Dateien in einer eigenen Liste
