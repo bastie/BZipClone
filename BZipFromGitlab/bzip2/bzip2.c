@@ -20,6 +20,11 @@
 
 /*---------------------------------------------*/
 /*--
+  Some stuff for Swift.
+ --*/
+#include "BZipFromGitlab-Bridging-Header.h"
+
+/*--
   Some stuff for all platforms.
 --*/
 
@@ -128,7 +133,6 @@ Int32   workFactor;
 static void    printUnexpectedProgramStateAndExitApplication                 ( const Char* ) NORETURN;
 static void    handleIoErrorsAndExitApplication        ( void )        NORETURN;
 static void    printOutOfMemoryAndExitApplication           ( void )        NORETURN;
-static void    printConfigErrorAndExitApplication           ( void )        NORETURN;
 static void    crcError              ( void )        NORETURN;
 static void    cleanUpAndFailAndExitApplication        ( Int32 )       NORETURN;
 static void    compressedStreamEOF   ( void )        NORETURN;
@@ -1023,7 +1027,7 @@ static void printOutOfMemoryAndExitApplication ( void ) {
 
 
 /*---------------------------------------------*/
-static void printConfigErrorAndExitApplication ( void ) {
+void printConfigErrorAndExitApplication ( void ) {
   fprintf ( stderr,
            "bzip2: I'm not configured correctly for this platform!\n"
            "\tI require Int32, Int16 and Char to have sizes\n"
@@ -2118,11 +2122,6 @@ int cMain ( int argc, char *argv[] ) {
    */
   Bool   decode;
   
-  // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
-  if (isCTypeSizesFits2BZip()) {
-    printConfigErrorAndExitApplication();
-  }
-  
   // Initialisiere die Variablen mit Standardwerten
   outputHandleJustInCase  = NULL;
   smallMode               = False;
@@ -2138,9 +2137,6 @@ int cMain ( int argc, char *argv[] ) {
   deleteOutputOnInterrupt = False;
   exitReturnCode          = 0;
   
-  /*-- Set up signal handlers for mem access errors --*/
-  registerSignalHandlers4MemErrors();
-
   // setze `inputFilename` auf "(none)"
   copyFileName ( inputFilename,  (Char*)"(none)" );
   // setze `outputFilename` auf "(none)"

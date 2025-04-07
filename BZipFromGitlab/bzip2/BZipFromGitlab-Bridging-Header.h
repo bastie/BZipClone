@@ -11,6 +11,10 @@
 #include "bzlib.h"
 #include "bzlib_private.h"
 
+void printConfigErrorAndExitApplication (void);
+void registerSignalHandlers4MemErrors (void);
+
+Bool isCTypeSizesFits2BZip(void);
 int cMain ( int argc, char *argv[] );
 
 #endif /* BZipFromGitlab_Bridging_Header_h_h */
