@@ -105,19 +105,19 @@ Int32   numFileNames, numFilesProcessed, blockSize100k;
 Int32   exitReturnCode;
 
 /*-- source modes --*/
-static const int SourceMode_StandardInput2StandardOutput = 1;
-static const int SourceMode_File2StandardOutput = 2;
-static const int SourceMode_File2File = 3;
+const int SourceMode_StandardInput2StandardOutput = 1;
+const int SourceMode_File2StandardOutput = 2;
+const int SourceMode_File2File = 3;
 
 /*-- operation modes --*/
-static const int OPERATION_MODE_COMPRESS = 1;
-static const int OPERATION_MODE_DECOMPRESS = 2;
-static const int OPERATION_MODE_TEST = 3;
+const int OPERATION_MODE_COMPRESS = 1;
+const int OPERATION_MODE_DECOMPRESS = 2;
+const int OPERATION_MODE_TEST = 3;
 
 Int32   operationMode;
 Int32   srcMode;
 
-static const int FILE_NAME_LEN = 1034;
+const int FILE_NAME_LEN = 1034;
 
 Int32   longestFilename;
 Char    inputFilename [FILE_NAME_LEN];
@@ -130,16 +130,17 @@ Char    progNameReally[FILE_NAME_LEN];
 FILE    *outputHandleJustInCase;
 Int32   workFactor;
 
-static void    printUnexpectedProgramStateAndExitApplication                 ( const Char* ) NORETURN;
-static void    handleIoErrorsAndExitApplication        ( void )        NORETURN;
-static void    printOutOfMemoryAndExitApplication           ( void )        NORETURN;
-static void    crcError              ( void )        NORETURN;
-static void    cleanUpAndFailAndExitApplication        ( Int32 )       NORETURN;
-static void    compressedStreamEOF   ( void )        NORETURN;
+void    printUnexpectedProgramStateAndExitApplication                 ( const Char* ) NORETURN;
+void    handleIoErrorsAndExitApplication        ( void )        NORETURN;
+void    printOutOfMemoryAndExitApplication           ( void )        NORETURN;
+void    printConfigErrorAndExitApplication           ( void )        NORETURN;
+void    crcError              ( void )        NORETURN;
+void    cleanUpAndFailAndExitApplication        ( Int32 )       NORETURN;
+void    compressedStreamEOF   ( void )        NORETURN;
 
-static void    copyFileName ( Char*, Char* );
-static void*   myMalloc     ( Int32 );
-static void    applySavedFileAttrToOutputFile ( IntNative fd );
+void    copyFileName ( Char*, Char* );
+void*   myMalloc     ( Int32 );
+void    applySavedFileAttrToOutputFile ( IntNative fd );
 
 
 
@@ -153,7 +154,7 @@ typedef struct {
 } UInt64;
 
 
-static void uInt64_from_UInt32s ( UInt64* n, UInt32 lo32, UInt32 hi32 ) {
+void uInt64_from_UInt32s ( UInt64* n, UInt32 lo32, UInt32 hi32 ) {
    n->b[7] = (UChar)((hi32 >> 24) & 0xFF);
    n->b[6] = (UChar)((hi32 >> 16) & 0xFF);
    n->b[5] = (UChar)((hi32 >> 8)  & 0xFF);
@@ -165,7 +166,7 @@ static void uInt64_from_UInt32s ( UInt64* n, UInt32 lo32, UInt32 hi32 ) {
 }
 
 
-static double uInt64_to_double ( UInt64* n ) {
+double uInt64_to_double ( UInt64* n ) {
    double base = 1.0;
    double sum  = 0.0;
    for (int i = 0; i < 8; i++) {
@@ -176,7 +177,7 @@ static double uInt64_to_double ( UInt64* n ) {
 }
 
 
-static Bool uInt64_isZero ( UInt64* n ) {
+Bool uInt64_isZero ( UInt64* n ) {
   for (int i = 0; i < 8; i++) {
     if (n->b[i] != 0) {
       return 0;
@@ -220,7 +221,7 @@ static Bool uInt64_isZero ( UInt64* n ) {
  // remainder == 0
  @endcode
  */
-static Int32 uInt64_qrm10 ( UInt64* n ) {
+Int32 uInt64_qrm10 ( UInt64* n ) {
   UInt32 rem;
   UInt32 tmp;
   rem = 0;
@@ -264,7 +265,7 @@ static Int32 uInt64_qrm10 ( UInt64* n ) {
  
  @see uInt64_isZero
  */
-static void uInt64_toAscii ( char* outbuf, UInt64* n ) {
+void uInt64_toAscii ( char* outbuf, UInt64* n ) {
   Int32  q;
   UChar  buf[32];
   Int32  nBuf   = 0;
@@ -324,7 +325,7 @@ static void uInt64_toAscii ( char* outbuf, UInt64* n ) {
  @see fgetc
  @see ungetc
  */
-static Bool myfeof ( FILE* f ) {
+Bool myfeof ( FILE* f ) {
   // lese ein Zeichen aus dem Eingabstrom als int Wert
   Int32 c = fgetc ( f );
   // Falls ein Fehler auftritt
@@ -423,7 +424,7 @@ inline void handleErrorsAndExitApplication (int* bzerror, BZFILE* bzf, int aband
   /*notreached*/
 }
 
-static void compressStream ( FILE *stream, FILE *zStream ) {
+void compressStream ( FILE *stream, FILE *zStream ) {
   BZFILE* bzf = NULL;
   UChar   buffer[BUFFER_SIZE];
   unsigned long   countOfElementsInBuffer;
@@ -523,7 +524,7 @@ static void compressStream ( FILE *stream, FILE *zStream ) {
 
 
 /*---------------------------------------------*/
-static Bool uncompressStream ( FILE *zStream, FILE *stream ) {
+Bool uncompressStream ( FILE *zStream, FILE *stream ) {
   const int bufferSize = 5000;
   BZFILE* bzf = NULL;
   Int32   bzerr;
@@ -691,7 +692,7 @@ errhandler:
 
 
 /*---------------------------------------------*/
-static Bool testStream ( FILE *zStream ) {
+Bool testStream ( FILE *zStream ) {
   const int bufferSize = 5000;
   BZFILE* bzf = NULL;
   Int32   bzerr, bzerr_dummy, ret, streamNo, i;
@@ -824,7 +825,7 @@ errhandler:
  
  @see exit
  */
-static void setExitReturnCode ( Int32 newExitReturnCode ) {
+void setExitReturnCode ( Int32 newExitReturnCode ) {
   // wenn der übergebene neue Wert für den Statuscode der Anwendung größer ist als der bisher gespeicherte Statuscode
   if (newExitReturnCode > exitReturnCode) {
     // speichere den neuen Statuscode
@@ -837,7 +838,7 @@ static void setExitReturnCode ( Int32 newExitReturnCode ) {
 
 
 /*---------------------------------------------*/
-static void cadvise ( void ) {
+void cadvise ( void ) {
   if (!quiet) {
     fprintf (
              stderr,
@@ -851,7 +852,7 @@ static void cadvise ( void ) {
 
 
 /*---------------------------------------------*/
-static void showFileNames ( void ) {
+void showFileNames ( void ) {
   if (!quiet) {
     fprintf ( stderr, "\tInput file = %s, output file = %s\n", inputFilename, outputFilename );
   }
@@ -859,7 +860,7 @@ static void showFileNames ( void ) {
 
 
 /*---------------------------------------------*/
-static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
+void cleanUpAndFailAndExitApplication ( Int32 ec ) {
   IntNative      retVal;
   struct stat statBuf;
   
@@ -900,7 +901,7 @@ static void cleanUpAndFailAndExitApplication ( Int32 ec ) {
 
 
 /*---------------------------------------------*/
-static void printUnexpectedProgramStateAndExitApplication ( const Char* s ) {
+void printUnexpectedProgramStateAndExitApplication ( const Char* s ) {
   fprintf ( stderr,
            "\n%s: PANIC -- internal consistency error:\n"
            "\t%s\n"
@@ -913,7 +914,7 @@ static void printUnexpectedProgramStateAndExitApplication ( const Char* s ) {
 
 
 /*---------------------------------------------*/
-static void crcError ( void ) {
+void crcError ( void ) {
   fprintf ( stderr, "\n%s: Data integrity error when decompressing.\n", progName );
   showFileNames();
   cadvise();
@@ -922,7 +923,7 @@ static void crcError ( void ) {
 
 
 /*---------------------------------------------*/
-static void compressedStreamEOF ( void ) {
+void compressedStreamEOF ( void ) {
   if (!quiet) {
     fprintf ( stderr, "\n%s: Compressed file ends unexpectedly;\n\t" "perhaps it is corrupted?  *Possible* reason follows.\n", progName );
     perror ( progName );
@@ -934,7 +935,7 @@ static void compressedStreamEOF ( void ) {
 
 
 /*---------------------------------------------*/
-static void handleIoErrorsAndExitApplication ( void ) {
+void handleIoErrorsAndExitApplication ( void ) {
   fprintf ( stderr, "\n%s: I/O or other error, bailing out.  " "Possible reason follows.\n", progName );
   perror ( progName );
   showFileNames();
@@ -943,14 +944,14 @@ static void handleIoErrorsAndExitApplication ( void ) {
 
 
 /*---------------------------------------------*/
-static void mySignalCatcher ( IntNative n, siginfo_t *info, void *context ) {
+void mySignalCatcher ( IntNative n, siginfo_t *info, void *context ) {
   fprintf ( stderr, "\n%s: Control-C or similar caught, quitting.\n", progName );
   cleanUpAndFailAndExitApplication(1);
 }
 
 
 /*---------------------------------------------*/
-static void mySIGSEGVorSIGBUScatcher ( IntNative n, siginfo_t *info, void *context ) {
+void mySIGSEGVorSIGBUScatcher ( IntNative n, siginfo_t *info, void *context ) {
   const char *msg;
   if (operationMode == OPERATION_MODE_COMPRESS) {
     msg = ": Caught a SIGSEGV or SIGBUS whilst compressing.\n"
@@ -1019,7 +1020,7 @@ static void mySIGSEGVorSIGBUScatcher ( IntNative n, siginfo_t *info, void *conte
 
 
 /*---------------------------------------------*/
-static void printOutOfMemoryAndExitApplication ( void ) {
+void printOutOfMemoryAndExitApplication ( void ) {
   fprintf ( stderr, "\n%s: couldn't allocate enough memory\n", progName );
   showFileNames();
   cleanUpAndFailAndExitApplication(1);
@@ -1077,7 +1078,7 @@ void printConfigErrorAndExitApplication ( void ) {
  pad(filename);
  @endcode
  */
-static void pad ( Char *s ) {
+void pad ( Char *s ) {
   // wenn die maximale Länge des Dateinamen kleiner als die Länge der übergebenen Zeichenkette ist
   if ( longestFilename < strlen(s)) {
     // beende die Funktion
@@ -1125,7 +1126,7 @@ static void pad ( Char *s ) {
  copyFileName(destinationFileName, sourceFileName);
  @endcode
  */
-static void copyFileName ( Char* to, Char* from ) {
+void copyFileName ( Char* to, Char* from ) {
   if ( strlen(from) > FILE_NAME_LEN-10 )  {
     fprintf ( stderr, "bzip2: file name\n`%s'\n" "is suspiciously (more than %d chars) long.\n" "Try using a reasonable file name instead.  Sorry! :-)\n", from, FILE_NAME_LEN-10 );
     setExitReturnCode(1);
@@ -1138,7 +1139,7 @@ static void copyFileName ( Char* to, Char* from ) {
 
 
 /*---------------------------------------------*/
-static Bool fileExists ( Char* name ) {
+Bool fileExists ( Char* name ) {
   FILE *tmp   = fopen ( name, "rb" );
   Bool exists = (tmp != NULL);
   if (tmp != NULL) {
@@ -1186,7 +1187,7 @@ static Bool fileExists ( Char* name ) {
  @see fdopen
  @see close
  */
-static FILE* fopen_output_safely ( Char* name, const char* mode ) {
+FILE* fopen_output_safely ( Char* name, const char* mode ) {
   // Öffne betriebssystemnah die Datei mit dem Namen `name` und kombinierten Modus write_only + create_if_not_exist + error_if_exist und setze die Permissions auf schreibbar für den Dateibesitzer und lesbar für den Dateibesitzer
   int fh = open (name, O_WRONLY|O_CREAT|O_EXCL, S_IWUSR|S_IRUSR);
   // Wenn open erfolgreich war
@@ -1213,7 +1214,7 @@ static FILE* fopen_output_safely ( Char* name, const char* mode ) {
 /*--
   if in doubt, return True
 --*/
-static Bool notAStandardFile ( Char* name ) {
+Bool notAStandardFile ( Char* name ) {
   IntNative      i;
   struct stat statBuf;
   
@@ -1240,7 +1241,7 @@ static Bool notAStandardFile ( Char* name ) {
 /*--
   rac 11/21/98 see if file has hard links to it
 --*/
-static Int32 countHardLinks ( Char* name ) {
+Int32 countHardLinks ( Char* name ) {
   IntNative      i;
   struct stat statBuf;
   
@@ -1275,9 +1276,9 @@ static Int32 countHardLinks ( Char* name ) {
    robustly to arbitrary Unix-like platforms (or even works robustly
    on this one, RedHat 7.2) is unknown to me.  Nevertheless ...
 */
-static struct stat fileMetaInfo;
+struct stat fileMetaInfo;
 
-static void saveInputFileMetaInfo ( Char *srcName ) {
+void saveInputFileMetaInfo ( Char *srcName ) {
    IntNative retVal;
    /* Note use of stat here, not lstat. */
    retVal = stat( srcName, &fileMetaInfo );
@@ -1285,7 +1286,7 @@ static void saveInputFileMetaInfo ( Char *srcName ) {
 }
 
 
-static void applySavedTimeInfoToOutputFile ( Char *dstName ) {
+void applySavedTimeInfoToOutputFile ( Char *dstName ) {
    IntNative      retVal;
    struct utimbuf uTimBuf;
 
@@ -1296,7 +1297,7 @@ static void applySavedTimeInfoToOutputFile ( Char *dstName ) {
    ERROR_IF_NOT_ZERO ( retVal );
 }
 
-static void applySavedFileAttrToOutputFile ( IntNative fd ) {
+void applySavedFileAttrToOutputFile ( IntNative fd ) {
    IntNative retVal;
 
    retVal = fchmod ( fd, fileMetaInfo.st_mode );
@@ -1308,12 +1309,12 @@ static void applySavedFileAttrToOutputFile ( IntNative fd ) {
 
 
 /*---------------------------------------------*/
-static const int BZ_N_SUFFIX_PAIRS = 4;
+const int BZ_N_SUFFIX_PAIRS = 4;
 
 const Char* compressedFilenameSuffix[BZ_N_SUFFIX_PAIRS] = { ".bz2", ".bz", ".tbz2", ".tbz" };
 const Char* uncompressedFilenameSuffix[BZ_N_SUFFIX_PAIRS] = { "", "", ".tar", ".tar" };
 
-static Bool hasSuffix ( Char* s, const Char* suffix ) {
+Bool hasSuffix ( Char* s, const Char* suffix ) {
   size_t ns = strlen(s);
   size_t nx = strlen(suffix);
   if (ns < nx) {
@@ -1325,7 +1326,7 @@ static Bool hasSuffix ( Char* s, const Char* suffix ) {
   return False;
 }
 
-static Bool mapSuffix ( Char* name, const Char* oldSuffix, const Char* newSuffix ) {
+Bool mapSuffix ( Char* name, const Char* oldSuffix, const Char* newSuffix ) {
   if (!hasSuffix(name,oldSuffix)) {
     return False;
   }
@@ -1336,7 +1337,7 @@ static Bool mapSuffix ( Char* name, const Char* oldSuffix, const Char* newSuffix
 
 
 /*---------------------------------------------*/
-static void compress ( Char *name ) {
+void compress ( Char *name ) {
   FILE  *inStr;
   FILE  *outStr;
   Int32 n, i;
@@ -1493,7 +1494,7 @@ static void compress ( Char *name ) {
 
 
 /*---------------------------------------------*/
-static void uncompress ( Char *name ) {
+void uncompress ( Char *name ) {
   FILE  *inStr;
   FILE  *outStr;
   Int32 n, i;
@@ -1667,7 +1668,7 @@ zzz:
 
 
 /*---------------------------------------------*/
-static void testFile ( Char *name ) {
+void testFile ( Char *name ) {
   FILE *inStr;
   Bool allOK;
   struct stat statBuf;
@@ -1745,7 +1746,7 @@ static void testFile ( Char *name ) {
  *
  * @note Diese Funktion gibt keine Werte zurück.
  */
-static void printLicenseOnStandardOutputStream ( void ) {
+void printLicenseOnStandardOutputStream ( void ) {
    fprintf ( stdout,
     "bzip2, a block-sorting file compressor.  "
     "Version %s.\n"
@@ -1781,7 +1782,7 @@ static void printLicenseOnStandardOutputStream ( void ) {
  * Sie erklärt auch, wie das Programm aufgerufen wird und wie es mit Standardein- und -ausgabe umgeht.
  *
  */
-static void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
+void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
    fprintf (
       stderr,
       "bzip2, a block-sorting file compressor.  "
@@ -1821,7 +1822,7 @@ static void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
 
 
 /*---------------------------------------------*/
-static void redundant ( Char* flag ) {
+void redundant ( Char* flag ) {
    fprintf ( stderr, "%s: %s is redundant in versions 0.9.5 and above\n", progName, flag );
 }
 
@@ -1864,7 +1865,7 @@ typedef struct Element {
 
 
 /*---------------------------------------------*/
-static void *myMalloc ( Int32 n ) {
+void *myMalloc ( Int32 n ) {
   void* p;
   
   p = malloc ( (size_t)n );
@@ -1876,7 +1877,7 @@ static void *myMalloc ( Int32 n ) {
 
 
 /*---------------------------------------------*/
-static LinkedListElementOfStrings *mkCell ( void ) {
+LinkedListElementOfStrings *mkCell ( void ) {
    LinkedListElementOfStrings *c;
 
    c = (LinkedListElementOfStrings*) myMalloc ( sizeof ( LinkedListElementOfStrings ) );
@@ -1887,7 +1888,7 @@ static LinkedListElementOfStrings *mkCell ( void ) {
 
 
 /*---------------------------------------------*/
-static LinkedListElementOfStrings *snocString ( LinkedListElementOfStrings *root, Char *name ) {
+LinkedListElementOfStrings *snocString ( LinkedListElementOfStrings *root, Char *name ) {
   if (root == NULL) {
     LinkedListElementOfStrings *tmp = mkCell();
     tmp->name = (Char*) myMalloc ( 5 + (unsigned int)strlen(name) );
@@ -1904,7 +1905,7 @@ static LinkedListElementOfStrings *snocString ( LinkedListElementOfStrings *root
 
 
 /*---------------------------------------------*/
-static void addFlagsFromEnvVar ( LinkedListElementOfStrings** argList, Char* varName ) {
+void addFlagsFromEnvVar ( LinkedListElementOfStrings** argList, Char* varName ) {
   Int32 i, j, k;
   Char *envbase, *p;
   
@@ -2062,7 +2063,7 @@ Bool isCTypeSizesFits2BZip(void) {
 }
 
 
-static struct sigaction sa;
+struct sigaction sa;
 
 void registerSignalHandlers4MemErrors (void) {
   // Struct initialisieren
@@ -2082,7 +2083,7 @@ void registerSignalHandlers4MemErrors (void) {
   
 }
 
-static struct sigaction saWithFileCleanUp;
+struct sigaction saWithFileCleanUp;
 void registerSignalHandlers4File2FileOperation (void) {
   // Struct initialisieren
   memset(&saWithFileCleanUp, 0, sizeof(saWithFileCleanUp));
