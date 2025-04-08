@@ -1792,7 +1792,6 @@ void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
       "   -t --test           test compressed file integrity\n"
       "   -c --stdout         output to standard out\n"
       "   -q --quiet          suppress noncritical error messages\n"
-      "   -v --verbose        be verbose (a 2nd -v gives more)\n"
       "   -L --license        display software version & license\n"
       "   -V --version        display software version & license\n"
       "   -s --small          use less memory (at most 2500k)\n"
@@ -1800,13 +1799,9 @@ void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
       "   --fast              alias for -1\n"
       "   --best              alias for -9\n"
       "\n"
-      "   If invoked as `bzip2', default action is to compress.\n"
-      "              as `bunzip2',  default action is to decompress.\n"
-      "              as `bzcat', default action is to decompress to stdout.\n"
-      "\n"
       "   If no file names are given, bzip2 compresses or decompresses\n"
       "   from standard input to standard output.  You can combine\n"
-      "   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n"
+      "   short flags, so `-k -4' means the same as -k4 or -4k, etc.\n"
       "\n"
       ,
 
