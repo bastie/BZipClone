@@ -1812,12 +1812,6 @@ void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
 
 
 /*---------------------------------------------*/
-void redundant ( Char* flag ) {
-   fprintf ( stderr, "%s: %s is redundant in versions 0.9.5 and above\n", progName, flag );
-}
-
-
-/*---------------------------------------------*/
 /*--
   All the garbage from here to main() is purely to
   implement a linked list of command-line arguments,
@@ -2381,34 +2375,23 @@ int main ( int argc, char *argv[] ) {
                             workFactor = 1;
                           }
                           else {
-                            if (ISFLAG(argument,"--repetitive-best"))   {
-                              redundant(argument->name);
+                            if (ISFLAG(argument,"--fast"))              {
+                              blockSize100k = 1;
                             }
                             else {
-                              if (ISFLAG(argument,"--repetitive-fast"))   {
-                                redundant(argument->name);
+                              if (ISFLAG(argument,"--best"))              {
+                                blockSize100k = 9;
                               }
                               else {
-                                if (ISFLAG(argument,"--fast"))              {
-                                  blockSize100k = 1;
+                                if (ISFLAG(argument,"--help"))              {
+                                  printUsageInformationOnStandardErrorStream ( progName );
+                                  exit ( 0 );
                                 }
                                 else {
-                                  if (ISFLAG(argument,"--best"))              {
-                                    blockSize100k = 9;
-                                  }
-                                  else {
-                                    if (ISFLAG(argument,"--help"))              {
-                                      printUsageInformationOnStandardErrorStream ( progName );
-                                      exit ( 0 );
-                                    }
-                                    else {
-                                      if (strncmp ( argument->name, "--", 2) == 0) {
-                                        fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                                        printUsageInformationOnStandardErrorStream ( progName );
-                                        exit ( 1 );
-                                      }
-                                      
-                                    }
+                                  if (strncmp ( argument->name, "--", 2) == 0) {
+                                    fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
+                                    printUsageInformationOnStandardErrorStream ( progName );
+                                    exit ( 1 );
                                   }
                                 }
                               }
