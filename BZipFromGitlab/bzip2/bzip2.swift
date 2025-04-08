@@ -25,6 +25,21 @@ struct BZip2 {
 
     /*-- Set up signal handlers for mem access errors --*/
     registerSignalHandlers4MemErrors();
+
+    // Initialisiere die Variablen mit Standardwerten
+    outputHandleJustInCase  = nil
+    smallMode               = 0 // C-Bool = FALSE
+    keepInputFiles          = 0 // C-Bool = FALSE
+    forceOverwrite          = 0 // C-Bool = FALSE
+    quiet                   = 0 // C-Bool = FALSE
+    blockSize100k           = 9
+    testFailsExist          = 0 // C-Bool = FALSE
+    decompressFailsExist    = 0 // C-Bool = FALSE
+    numFileNames            = 0
+    numFilesProcessed       = 0
+    workFactor              = 30
+    deleteOutputOnInterrupt = 0 // C-Bool = FALSE
+    exitReturnCode          = 0
     
 
     cMain(CommandLine.argc, CommandLine.unsafeArgv)

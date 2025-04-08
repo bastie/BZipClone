@@ -87,23 +87,6 @@ typedef int IntNative;
 /*--- Misc (file handling) data decls             ---*/
 /*---------------------------------------------------*/
 
-Bool    keepInputFiles, smallMode, deleteOutputOnInterrupt;
-/**
- Flag, ob die Datei(en) überschrieben werden sollen.
- */
-Bool    forceOverwrite;
-/**
- Flag, ob es Fehler beim Testen der Datei(en) gab.
- */
-Bool    testFailsExist;
-/**
- Flag, ob es Fehler beim Dekomprimieren der Datei(en) gab.
- */
-Bool    decompressFailsExist;
-Bool    quiet;
-Int32   numFileNames, numFilesProcessed, blockSize100k;
-Int32   exitReturnCode;
-
 /*-- source modes --*/
 const int SourceMode_StandardInput2StandardOutput = 1;
 const int SourceMode_File2StandardOutput = 2;
@@ -127,8 +110,6 @@ Char    tmporaryFilename[FILE_NAME_LEN];
 Char*   progName;
 // Deklariere ein Array von Zeichen in der Länge `FILE_NAME_LEN`
 Char    progNameReally[FILE_NAME_LEN];
-FILE    *outputHandleJustInCase;
-Int32   workFactor;
 
 void    printUnexpectedProgramStateAndExitApplication                 ( const Char* ) NORETURN;
 void    handleIoErrorsAndExitApplication        ( void )        NORETURN;
@@ -2122,21 +2103,6 @@ int cMain ( int argc, char *argv[] ) {
    werden.
    */
   Bool   decode;
-  
-  // Initialisiere die Variablen mit Standardwerten
-  outputHandleJustInCase  = NULL;
-  smallMode               = False;
-  keepInputFiles          = False;
-  forceOverwrite          = False;
-  quiet                   = False;
-  blockSize100k           = 9;
-  testFailsExist          = False;
-  decompressFailsExist    = False;
-  numFileNames            = 0;
-  numFilesProcessed       = 0;
-  workFactor              = 30;
-  deleteOutputOnInterrupt = False;
-  exitReturnCode          = 0;
   
   // setze `inputFilename` auf "(none)"
   copyFileName ( inputFilename,  (Char*)"(none)" );
