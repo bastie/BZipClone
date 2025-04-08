@@ -1,6 +1,6 @@
 
 NAME
-       bzip2, bunzip2 - a block-sorting file compressor, v1.0.6
+       bzip2, bunzip2 - a block-sorting file compressor, v1.1.0
        bzcat - decompresses files to stdout
        bzip2recover - recovers data from damaged bzip2 files
 
@@ -108,10 +108,12 @@ DESCRIPTION
        you  recover  the original uncompressed data.  You can use
        bzip2recover to try to recover data from damaged files.
 
-       Return values: 0 for a normal exit,  1  for  environmental
-       problems  (file not found, invalid flags, I/O errors, &c),
+       Return values:
+       0 for a normal exit,
+       1 for  environmental problems
+         (file not found, invalid flags, I/O errors, etc.),
        2 to indicate a corrupt compressed file, 3 for an internal
-       consistency error (eg, bug) which caused bzip2 to panic.
+         consistency error (eg, bug) which caused bzip2 to panic.
 
 
 OPTIONS
@@ -186,14 +188,6 @@ OPTIONS
               if they start with a dash.  This is so you can han-
               dle files with names beginning  with  a  dash,  for
               example: bzip2 -- -myfilename.
-
-       --repetitive-fast --repetitive-best
-              These  flags  are  redundant  in versions 0.9.5 and
-              above.  They provided some coarse control over  the
-              behaviour  of the sorting algorithm in earlier ver-
-              sions, which was sometimes useful.  0.9.5 and above
-              have  an  improved  algorithm  which  renders these
-              flags irrelevant.
 
 
 MEMORY MANAGEMENT

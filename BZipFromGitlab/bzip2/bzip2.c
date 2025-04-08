@@ -1774,7 +1774,6 @@ void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
       "   -t --test           test compressed file integrity\n"
       "   -c --stdout         output to standard out\n"
       "   -q --quiet          suppress noncritical error messages\n"
-      "   -v --verbose        be verbose (a 2nd -v gives more)\n"
       "   -L --license        display software version & license\n"
       "   -V --version        display software version & license\n"
       "   -s --small          use less memory (at most 2500k)\n"
@@ -1782,25 +1781,15 @@ void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
       "   --fast              alias for -1\n"
       "   --best              alias for -9\n"
       "\n"
-      "   If invoked as `bzip2', default action is to compress.\n"
-      "              as `bunzip2',  default action is to decompress.\n"
-      "              as `bzcat', default action is to decompress to stdout.\n"
-      "\n"
       "   If no file names are given, bzip2 compresses or decompresses\n"
       "   from standard input to standard output.  You can combine\n"
-      "   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n"
+      "   short flags, so `-k -4' means the same as -k4 or -4k, etc.\n"
       "\n"
       ,
 
       BZ2_bzlibVersion(),
       fullProgName
    );
-}
-
-
-/*---------------------------------------------*/
-void redundant ( Char* flag ) {
-   fprintf ( stderr, "%s: %s is redundant in versions 0.9.5 and above\n", progName, flag );
 }
 
 
@@ -2330,34 +2319,23 @@ int cMain ( int argc, char *argv[] ) {
                             workFactor = 1;
                           }
                           else {
-                            if (ISFLAG(argument,"--repetitive-best"))   {
-                              redundant(argument->name);
+                            if (ISFLAG(argument,"--fast"))              {
+                              blockSize100k = 1;
                             }
                             else {
-                              if (ISFLAG(argument,"--repetitive-fast"))   {
-                                redundant(argument->name);
+                              if (ISFLAG(argument,"--best"))              {
+                                blockSize100k = 9;
                               }
                               else {
-                                if (ISFLAG(argument,"--fast"))              {
-                                  blockSize100k = 1;
+                                if (ISFLAG(argument,"--help"))              {
+                                  printUsageInformationOnStandardErrorStream ( progName );
+                                  exit ( 0 );
                                 }
                                 else {
-                                  if (ISFLAG(argument,"--best"))              {
-                                    blockSize100k = 9;
-                                  }
-                                  else {
-                                    if (ISFLAG(argument,"--help"))              {
-                                      printUsageInformationOnStandardErrorStream ( progName );
-                                      exit ( 0 );
-                                    }
-                                    else {
-                                      if (strncmp ( argument->name, "--", 2) == 0) {
-                                        fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                                        printUsageInformationOnStandardErrorStream ( progName );
-                                        exit ( 1 );
-                                      }
-                                      
-                                    }
+                                  if (strncmp ( argument->name, "--", 2) == 0) {
+                                    fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
+                                    printUsageInformationOnStandardErrorStream ( progName );
+                                    exit ( 1 );
                                   }
                                 }
                               }
