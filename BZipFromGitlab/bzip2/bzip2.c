@@ -106,10 +106,6 @@ Int32   longestFilename;
 Char    inputFilename [FILE_NAME_LEN];
 Char    outputFilename[FILE_NAME_LEN];
 Char    tmporaryFilename[FILE_NAME_LEN];
-// Deklariere eine Variable für einen Zeiger auf Zeichenkette, die den Programmnamen ohne Pfadangaben enthalten soll
-Char*   progName;
-// Deklariere ein Array von Zeichen in der Länge `FILE_NAME_LEN`
-Char    progNameReally[FILE_NAME_LEN];
 
 void    printUnexpectedProgramStateAndExitApplication                 ( const Char* ) NORETURN;
 void    handleIoErrorsAndExitApplication        ( void )        NORETURN;
@@ -2108,21 +2104,6 @@ int cMain ( int argc, char *argv[] ) {
   copyFileName ( inputFilename,  (Char*)"(none)" );
   // setze `outputFilename` auf "(none)"
   copyFileName ( outputFilename, (Char*)"(none)" );
-  
-  // setze `progNameReally` auf den Wert des ersten Argumentes. In C ist dies der Programmname.
-  copyFileName ( progNameReally, argv[0] ); // MARK: c-specific
-  // lasse den Zeiger `progName` auf die Adresse des ersten Elementes des Char-Array
-  progName = &progNameReally[0];
-  // ermittle nun den `basename` (shell) des Programmes indem du...
-  // setze einen Zeiger auf das erste Zeichen im CharArray und solange nicht das Terminatorzeichen 0x00 auftritt gehe vor dem nachfolgenden Schleifendurchlauf mit dem Zeiger eine Adresse weiter
-  for (tmp = &progNameReally[0]; *tmp != '\0'; tmp++) {
-    // wenn das Zeichen am Zeiger identisch mit dem PATH_SEPARATOR ('/') ist
-    if (*tmp == '/') { // MARK: os-specific
-      // setze den Zeiger für den Programmnamen auf das Zeichen nach dem PATH_SEPARATOR
-      progName = tmp + 1;
-    }
-  }
-  
   
   /*-- Copy flags from env var BZIP2, and
    expand filename wildcards in arg list.

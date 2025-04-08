@@ -33,6 +33,9 @@ Int32   workFactor;
 Int32   exitReturnCode;
 
 
+// Deklariere eine Variable für einen Zeiger auf Zeichenkette, die den Programmnamen ohne Pfadangaben enthalten soll
+Char*   progName;
+
 void printConfigErrorAndExitApplication (void);
 void registerSignalHandlers4MemErrors (void);
 

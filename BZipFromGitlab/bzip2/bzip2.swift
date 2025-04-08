@@ -41,7 +41,10 @@ struct BZip2 {
     deleteOutputOnInterrupt = 0 // C-Bool = FALSE
     exitReturnCode          = 0
     
-
+    progName = letCHandleMemoryFromSwiftString(
+      CommandLine.arguments[0].split(separator: "/").last
+    )
+    
     cMain(CommandLine.argc, CommandLine.unsafeArgv)
   }
 }
