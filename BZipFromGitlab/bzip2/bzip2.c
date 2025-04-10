@@ -2040,20 +2040,10 @@ void registerSignalHandlers4File2FileOperation (void) {
 }
 
 int main ( int argc, char *argv[] ) {
-  Int32  i = 0;
-  Int32  j = 0;
   Char   *tmp;
   LinkedListElementOfStrings   *argumentList;
   LinkedListElementOfStrings   *argument;
-  /**
-   Mit Hilfe dieser Variable wird sichergestellt, dass bei den Argumenten
-   nur bis zum ersten Auftreten von "--" geprüft wird, ob mit einem
-   einzelnen "-" ein Flag eingeleitet wird.
-   Dadurch können auch Dateinamen die mit "-" beginnen bearbeitet
-   werden.
-   */
-  Bool   decode;
-  
+
   // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
   if (isCTypeSizesFits2BZip()) {
     printConfigErrorAndExitApplication();
@@ -2103,12 +2093,21 @@ int main ( int argc, char *argv[] ) {
   argumentList = NULL;
   addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP2" );
   addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP" );
-  for (i = 1; i <= argc-1; i++) {
+  for (int i = 1; i <= argc-1; i++) {
     APPEND_FILESPEC(argumentList, argv[i]);
   }
   
   numFileNames    = 0;
-  decode          = True;
+  
+  /**
+   Mit Hilfe dieser Variable wird sichergestellt, dass bei den Argumenten
+   nur bis zum ersten Auftreten von "--" geprüft wird, ob mit einem
+   einzelnen "-" ein Flag eingeleitet wird.
+   Dadurch können auch Dateinamen die mit "-" beginnen bearbeitet
+   werden.
+   */
+  Bool decode          = True;
+  
   // Für jedes Argument führe die Schleife aus
   for (argument = argumentList; argument != NULL; argument = argument->next) {
     // Wenn das Argument genau "--" ist
@@ -2158,7 +2157,7 @@ int main ( int argc, char *argv[] ) {
       // Wenn das Argument mit einem "-" beginnt, dem keine weiteren "-" folgend (also auch nicht mehr als zwei "-"
       if (argument->name[0] == '-' && argument->name[1] != '-') {
         // für jedes (j++) Zeichen nach dem Minus (j=1) solange bis die Zeichenkette zu Ende ist (j != '\0')
-        for (j = 1; argument->name[j] != '\0'; j++) {
+        for (int j = 1; argument->name[j] != '\0'; j++) {
           // Prüfe den Wert des Zeichens (der hier einem Kurzargument nach POSIX entspricht)
           switch (argument->name[j]) {
             case 'c': // Wenn das Argument 'c' ist
