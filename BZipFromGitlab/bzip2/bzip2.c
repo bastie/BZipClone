@@ -2016,33 +2016,8 @@ void registerSignalHandlers4File2FileOperation (void) {
 }
 
 int cMain ( int argc, char *argv[] ) {
-  Int32  i = 0;
-  Int32  j = 0;
   LinkedListElementOfStrings   *argumentList;
   LinkedListElementOfStrings   *argument;
-
-  // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
-  if (isCTypeSizesFits2BZip()) {
-    printConfigErrorAndExitApplication();
-  }
-  
-  // Initialisiere die Variablen mit Standardwerten
-  outputHandleJustInCase  = NULL;
-  smallMode               = False;
-  keepInputFiles          = False;
-  forceOverwrite          = False;
-  quiet                   = False;
-  blockSize100k           = 9;
-  testFailsExist          = False;
-  decompressFailsExist    = False;
-  numFileNames            = 0;
-  numFilesProcessed       = 0;
-  workFactor              = 30;
-  deleteOutputOnInterrupt = False;
-  exitReturnCode          = 0;
-  
-  /*-- Set up signal handlers for mem access errors --*/
-  registerSignalHandlers4MemErrors();
 
   // setze `inputFilename` auf "(none)"
   copyFileName ( inputFilename,  (Char*)"(none)" );
