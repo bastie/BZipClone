@@ -102,7 +102,6 @@ Int32   srcMode;
 
 const int FILE_NAME_LEN = 1034;
 
-//Int32   longestFilename;
 Char    inputFilename [FILE_NAME_LEN];
 Char    outputFilename[FILE_NAME_LEN];
 Char    tmporaryFilename[FILE_NAME_LEN];
@@ -2051,8 +2050,6 @@ int cMain ( int argc, char *argv[] ) {
     APPEND_FILESPEC(argumentList, argv[i]);
   }
   
-  
-  /*-- Find the length of the longest filename --*/
   numFileNames    = 0;
   decode          = True;
   // Für jedes Argument führe die Schleife aus
