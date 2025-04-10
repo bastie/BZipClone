@@ -49,12 +49,6 @@
 #   define MY_S_ISREG  S_ISREG
 #   define MY_S_ISDIR  S_ISDIR
 
-#   define APPEND_FILESPEC(root, name) \
-      root=snocString((root), (name))
-
-#   define APPEND_FLAG(root, name) \
-      root=snocString((root), (name))
-
 #      define NORETURN __attribute__ ((noreturn))
 
 
@@ -1865,7 +1859,7 @@ void addFlagsFromEnvVar ( LinkedListElementOfStrings** argList, Char* varName ) 
           tmporaryFilename[j] = p[j];
         }
         tmporaryFilename[k] = 0;
-        APPEND_FLAG(*argList, tmporaryFilename);
+        *argList=snocString(*argList, tmporaryFilename);
       }
     }
   }
@@ -2094,7 +2088,7 @@ int main ( int argc, char *argv[] ) {
   addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP2" );
   addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP" );
   for (int i = 1; i <= argc-1; i++) {
-    APPEND_FILESPEC(argumentList, argv[i]);
+    argumentList=snocString(argumentList, argv[i]);
   }
   
   numFileNames    = 0;
