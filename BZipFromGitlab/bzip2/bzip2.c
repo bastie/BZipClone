@@ -102,7 +102,7 @@ Int32   srcMode;
 
 const int FILE_NAME_LEN = 1034;
 
-Int32   longestFilename;
+//Int32   longestFilename;
 Char    inputFilename [FILE_NAME_LEN];
 Char    outputFilename[FILE_NAME_LEN];
 Char    tmporaryFilename[FILE_NAME_LEN];
@@ -1020,58 +1020,6 @@ void printConfigErrorAndExitApplication ( void ) {
 /*---------------------------------------------------*/
 /*--- Die Hauptsteuerungsmechanik                 ---*/
 /*---------------------------------------------------*/
-
-/* Alles ziemlich schlampig. Das Hauptproblem ist, dass
- Eingabedateien vor der Verwendung mehrmals mit stat()
- abgefragt werden. Das sollte bereinigt werden.
- */
-
-/** (KI generierte Dokumentation war stark fehlerhaft!)
- @brief Gibt Leerzeichen auf `stderr`, um eine Zeichenkette mit eine bestimmte Länge auszugeben.
- 
- Diese Funktion gibt Leerzeichen aus, um zusammen mit der Zeichenkette auf die Länge
- `longestFilename` zu kommen. Die Funktion gibt nichts zurück, sondern schreibt
- die Leerzeichen direkt auf `stderr`.
- 
- @param s Ein Zeiger auf die Zeichenkette.
- 
- @discussion
- Die Funktion überprüft zunächst, ob die Länge der Zeichenkette `s` bereits größer oder
- gleich `longestFilename` ist. Wenn dies der Fall ist, wird die Funktion sofort
- beendet. Andernfalls gibt die Funktion so viele Leerzeichen aus, dass,
- zusammen mit der übergebenen Zeichenkette, die Gesamtlänge
- `longestFilename` erreicht wird.
- 
- @note
- `longestFilename` ist eine globale Variable, die die maximale Länge des Dateinamens
- speichert.
- 
- @warning
- Die Leerzeichen werden direkt auf `stderr` geschrieben.
- 
- @code
- char filename[] = "kurz.txt";
- longestFilename = 20;
- pad(filename);
- @endcode
- */
-void pad ( Char *s ) {
-  // wenn die maximale Länge des Dateinamen kleiner als die Länge der übergebenen Zeichenkette ist
-  if ( longestFilename < strlen(s)) {
-    // beende die Funktion
-    return;
-  }
-  // wenn die maximale Länge des Dateinamen nicht kleiner als die Länge der übergebene Zeichenkette ist
-  else {
-    // ermittle den Unterschied zwischen der Länge der übergebene Zeichenkette und der maximalen Länge eines Dateinamen
-    const Int32 rangeBetweenLengthOfLongestFilenameAndParameter = longestFilename - (Int32)strlen(s);
-    // Führe für so oft wie der Unterschied zwischen der Länge der übergebene Zeichenkette und der maximalen Länge eines Dateinamen ist folgende Anweisungen durch:
-    for (int i = 1; i <= rangeBetweenLengthOfLongestFilenameAndParameter; i++) {
-      // Gebe auf dem Standard-Fehlerdatenstrom ein Leerzeichen aus
-      fprintf ( stderr, " " );
-    }
-  }
-}
 
 
 /** (KI generiert und manuell angepasst)
@@ -2077,7 +2025,6 @@ void registerSignalHandlers4File2FileOperation (void) {
 int cMain ( int argc, char *argv[] ) {
   Int32  i = 0;
   Int32  j = 0;
-  Char   *tmp;
   LinkedListElementOfStrings   *argumentList;
   LinkedListElementOfStrings   *argument;
   /**
@@ -2106,7 +2053,6 @@ int cMain ( int argc, char *argv[] ) {
   
   
   /*-- Find the length of the longest filename --*/
-  longestFilename = 7;
   numFileNames    = 0;
   decode          = True;
   // Für jedes Argument führe die Schleife aus
@@ -2126,15 +2072,6 @@ int cMain ( int argc, char *argv[] ) {
       else {
         // erhöhe die Anzahl der Dateinamen um 1
         numFileNames += 1;
-        // wenn der Wert in longestFilename < der Länge des Argumentes ist
-        if (longestFilename < (Int32)strlen(argument->name) ) {
-          // setze den Wert von longestFilname auf den Wert der der Länge des Argumentes entspricht
-          longestFilename = (Int32)strlen(argument->name);
-        }
-        // sonst, also der Wert in longestFilename >= der Länge des Argumentes ist
-        else {
-          // mache nichts
-        }
       }
     }
   }
