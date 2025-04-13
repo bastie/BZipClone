@@ -26,7 +26,8 @@ This program is released under the terms of the license contained in the
 
 ------------------------------------------------------------------
 
-This version is not fully compatible with the previous public releases.
+This version is **not fully compatible** with the previous public releases.
+But, the **compressed files are fully identical**.
 
 A documentation is available in a plain-text version of the
 manual page is available as bzip2.txt.
@@ -43,10 +44,10 @@ Please report bugs via [GitHub Issues](https://github.com/bastie/BZipClone/issue
 
 Before you create a new issue, please verify that no one else has already reported the same issue.
 
-## Compiling Bzip2 and libbz2
+## Compiling Bzip2 
 
 ```sh
-xcodebuild -alltargets
+xcodebuild -scheme bzip2 -configuration Release -derivedDataPath ./build build
 ```
 
 ## WARNING
