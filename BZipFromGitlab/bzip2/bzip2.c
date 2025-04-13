@@ -24,6 +24,8 @@
  --*/
 #include "BZipFromGitlab-Bridging-Header.h"
 Bool    keepInputFiles = False;
+Int32   blockSize100k = -1;
+Int32   operationMode = -1;
 
 /*--
   Some stuff for all platforms.
@@ -87,12 +89,6 @@ const int SourceMode_StandardInput2StandardOutput = 1;
 const int SourceMode_File2StandardOutput = 2;
 const int SourceMode_File2File = 3;
 
-/*-- operation modes --*/
-const int OPERATION_MODE_COMPRESS = 1;
-const int OPERATION_MODE_DECOMPRESS = 2;
-const int OPERATION_MODE_TEST = 3;
-
-Int32   operationMode;
 Int32   srcMode;
 
 const int FILE_NAME_LEN = 1034;
@@ -1993,9 +1989,6 @@ int cMain ( int argc, char *argv[] ) {
     srcMode = SourceMode_File2File;
   }
   
-  // Setze den Standardwert für die zu erledigende Aufgabe auf Komprimierung
-  operationMode = OPERATION_MODE_COMPRESS;
-
   // Werte jetzt die Argumente für die Posix-Kurzform aus:
   // Für jedes Argument führe die Schleife aus
   for (argument = argumentList; argument != NULL; argument = argument->next) {
@@ -2039,42 +2032,15 @@ int cMain ( int argc, char *argv[] ) {
               // gebe möglichst wenig Informationen auf der Kommandozeile aus
               quiet = True;
               break;
-            case '1': // Wenn das Argument '1' ist
-              // setze die Blockgrößenfaktor auf 1
-              blockSize100k    = 1;
-              break;
-            case '2': // Wenn das Argument '2' ist
-              // setze die Blockgrößenfaktor auf 2
-              blockSize100k    = 2;
-              break;
-            case '3': // Wenn das Argument '3' ist
-              // setze die Blockgrößenfaktor auf 3
-              blockSize100k    = 3;
-              break;
-            case '4': // Wenn das Argument '4' ist
-              // setze die Blockgrößenfaktor auf 4
-              blockSize100k    = 4;
-              break;
-            case '5': // Wenn das Argument '5' ist
-              // setze die Blockgrößenfaktor auf 5
-              blockSize100k    = 5;
-              break;
-            case '6': // Wenn das Argument '6' ist
-              // setze die Blockgrößenfaktor auf 6
-              blockSize100k    = 6;
-              break;
-            case '7': // Wenn das Argument '7' ist
-              // setze die Blockgrößenfaktor auf 7
-              blockSize100k    = 7;
-              break;
-            case '8': // Wenn das Argument '8' ist
-              // setze die Blockgrößenfaktor auf 8
-              blockSize100k    = 8;
-              break;
-            case '9': // Wenn das Argument '9' ist
-              // setze die Blockgrößenfaktor auf 9
-              blockSize100k    = 9;
-              break;
+            case '1': // ignorieren, weil über Swift gesetzt
+            case '2': // ignorieren, weil über Swift gesetzt
+            case '3': // ignorieren, weil über Swift gesetzt
+            case '4': // ignorieren, weil über Swift gesetzt
+            case '5': // ignorieren, weil über Swift gesetzt
+            case '6': // ignorieren, weil über Swift gesetzt
+            case '7': // ignorieren, weil über Swift gesetzt
+            case '8': // ignorieren, weil über Swift gesetzt
+            case '9': // ignorieren, weil über Swift gesetzt
             case 'k': // ignorieren, weil über Swift gesetzt
               break;
             default: // Wenn ein anderes, also unbekanntes, Argument angegeben ist
@@ -2117,32 +2083,17 @@ int cMain ( int argc, char *argv[] ) {
                 operationMode = OPERATION_MODE_TEST;
               }
               else {
-                if (ISFLAG(argument,"--small"))             {
-                  smallMode = True;
+                if (ISFLAG(argument,"--quiet"))             {
+                  quiet = True;
                 }
                 else {
-                  if (ISFLAG(argument,"--quiet"))             {
-                    quiet = True;
+                  if (ISFLAG(argument,"--exponential"))       {
+                    workFactor = 1;
                   }
                   else {
-                    if (ISFLAG(argument,"--exponential"))       {
-                      workFactor = 1;
-                    }
-                    else {
-                      if (ISFLAG(argument,"--fast"))              {
-                        blockSize100k = 1;
-                      }
-                      else {
-                        if (ISFLAG(argument,"--best"))              {
-                          blockSize100k = 9;
-                        }
-                        else {
-                          if (strncmp ( argument->name, "--", 2) == 0) {
-                            fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                            exit ( 1 );
-                          }
-                        }
-                      }
+                    if (strncmp ( argument->name, "--", 2) == 0) {
+                      fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
+                      exit ( 1 );
                     }
                   }
                 }
@@ -2154,11 +2105,6 @@ int cMain ( int argc, char *argv[] ) {
     }
   }
   
-  // Prüfe, ob der smallMode gesetzt ist und komprimiert werden soll und die Blockgröße > 2 ist
-  if (smallMode && operationMode == OPERATION_MODE_COMPRESS && blockSize100k > 2) {
-    // setze die Blockgröße auf 2 (da ja smallMode = TRUE)
-    blockSize100k = 2;
-  }
   // Prüfe ob getestet werden soll und der Modus aber auf File2StandardOutput gesetzt ist
   if (operationMode == OPERATION_MODE_TEST && srcMode == SourceMode_File2StandardOutput) {
     // gebe eine Fehlermeldung aus

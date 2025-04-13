@@ -32,7 +32,6 @@ struct bzip2 : ParsableCommand {
     smallMode               = 0 // C-Bool = FALSE
     forceOverwrite          = 0 // C-Bool = FALSE
     quiet                   = 0 // C-Bool = FALSE
-    blockSize100k           = 9
     testFailsExist          = 0 // C-Bool = FALSE
     decompressFailsExist    = 0 // C-Bool = FALSE
     numFileNames            = 0
@@ -40,11 +39,19 @@ struct bzip2 : ParsableCommand {
     workFactor              = 30
     deleteOutputOnInterrupt = 0 // C-Bool = FALSE
     exitReturnCode          = 0
+    operationMode = 1/* OPERATION_MODE_COMPRESS;*/
     
+
     progName = letCHandleMemoryFromSwiftString(
       CommandLine.arguments[0].split(separator: "/").last
     )
     
+    // Prüfe, ob der smallMode gesetzt ist und komprimiert werden soll und die Blockgröße > 2 ist
+    if _smallMode && operationMode == 1 /*OPERATION_MODE_COMPRESS*/ && blockSize100k > 2 {
+      // setze die Blockgröße auf 2 (da ja smallMode = TRUE)
+      blockSize100k = 2;
+    }
+
     cMain(CommandLine.argc, CommandLine.unsafeArgv)
   }
   
@@ -132,6 +139,10 @@ struct bzip2 : ParsableCommand {
     
     if _keepInputFiles {
       keepInputFiles = True
+    }
+    blockSize100k = Int32(_blockSize100k.rawValue)
+    if _smallMode {
+      smallMode = True
     }
   }
   

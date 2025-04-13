@@ -35,7 +35,18 @@ Bool    testFailsExist;
  */
 Bool    decompressFailsExist;
 Bool    quiet;
-Int32   numFileNames, numFilesProcessed, blockSize100k;
+Int32   numFileNames, numFilesProcessed;
+/**
+ Flag, welches den Kompressionsfaktor angibt denn größere Blöcke bedeuten bessere Komprimierung
+ */
+extern Int32   blockSize100k;
+
+extern Int32   operationMode;
+/*-- operation modes --*/
+const int OPERATION_MODE_COMPRESS = 1;
+const int OPERATION_MODE_DECOMPRESS = 2;
+const int OPERATION_MODE_TEST = 3;
+
 
 Int32   workFactor;
 Int32   exitReturnCode;
