@@ -23,6 +23,7 @@
   Some stuff for Swift.
  --*/
 #include "BZipFromGitlab-Bridging-Header.h"
+Bool    keepInputFiles = False;
 
 /*--
   Some stuff for all platforms.
@@ -1652,88 +1653,6 @@ void testFile ( Char *name ) {
   }
 }
 
-
-/** (KI generiert und angepasst)
- *
- * @brief Gibt die Lizenzinformationen auf der Standardausgabe aus.
- *
- * Diese Funktion gibt die Versionsnummer, das Copyright und die Lizenzbedingungen
- * auf der Standardausgabe aus. Die Ausgabe informiert den Benutzer
- * darüber, dass die Anwendung freie Software ist und unter den Bedingungen der im
- * LICENSE-Datei definierten Lizenz vertrieben wird.
- *
- * @note Diese Funktion gibt keine Werte zurück.
- */
-void printLicenseOnStandardOutputStream ( void ) {
-   fprintf ( stdout,
-    "bzip2, a block-sorting file compressor.  "
-    "Version %s.\n"
-    "   \n"
-    "   Copyright (C) 1996-2010 by Julian Seward.\n"
-    "   \n"
-    "   This program is free software; you can redistribute it and/or modify\n"
-    "   it under the terms set out in the LICENSE file, which is included\n"
-    "   in the bzip2-1.0.6 source distribution.\n"
-    "   \n"
-    "   This program is distributed in the hope that it will be useful,\n"
-    "   but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-    "   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
-    "   LICENSE file for more details.\n"
-    "   \n",
-    BZ2_bzlibVersion()
-   );
-}
-
-
-/**
- * @brief Gibt die Nutzungsinformationen für das Programm auf der Standardfehlerausgabe aus.
- *
- * Diese Funktion zeigt eine Hilfemeldung an, die die verfügbaren Befehlszeilenoptionen und deren
- * Verwendung beschreibt. Sie wird typischerweise aufgerufen, wenn der Benutzer die Option
- * `-h` oder `--help` angibt oder wenn ungültige Befehlszeilenargumente erkannt werden.
- *
- * @param fullProgName Der vollständige Name des Programms.
- * Dieser Name wird verwendet, um die den Programmnamen auszugeben.
- *
- * @details
- * Die Funktion gibt die Version des Programmes, die verfügbaren Optionen und deren Beschreibungen aus.
- * Sie erklärt auch, wie das Programm aufgerufen wird und wie es mit Standardein- und -ausgabe umgeht.
- *
- */
-void printUsageInformationOnStandardErrorStream ( Char *fullProgName ) {
-   fprintf (
-      stderr,
-      "bzip2, a block-sorting file compressor.  "
-      "Version %s.\n"
-      "\n   usage: %s [flags and input files in any order]\n"
-      "\n"
-      "   -h --help           print this message\n"
-      "   -d --decompress     force decompression\n"
-      "   -z --compress       force compression\n"
-      "   -k --keep           keep (don't delete) input files\n"
-      "   -f --force          overwrite existing output files\n"
-      "   -t --test           test compressed file integrity\n"
-      "   -c --stdout         output to standard out\n"
-      "   -q --quiet          suppress noncritical error messages\n"
-      "   -L --license        display software version & license\n"
-      "   -V --version        display software version & license\n"
-      "   -s --small          use less memory (at most 2500k)\n"
-      "   -1 .. -9            set block size to 100k .. 900k\n"
-      "   --fast              alias for -1\n"
-      "   --best              alias for -9\n"
-      "\n"
-      "   If no file names are given, bzip2 compresses or decompresses\n"
-      "   from standard input to standard output.  You can combine\n"
-      "   short flags, so `-k -4' means the same as -k4 or -4k, etc.\n"
-      "\n"
-      ,
-
-      BZ2_bzlibVersion(),
-      fullProgName
-   );
-}
-
-
 /*---------------------------------------------*/
 /*--
   All the garbage from here to main() is purely to
@@ -2024,12 +1943,7 @@ int cMain ( int argc, char *argv[] ) {
   // setze `outputFilename` auf "(none)"
   copyFileName ( outputFilename, (Char*)"(none)" );
   
-  /*-- Copy flags from env var BZIP2, and
-   expand filename wildcards in arg list.
-   --*/
   argumentList = NULL;
-  addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP2" );
-  addFlagsFromEnvVar ( &argumentList,  (Char*)"BZIP" );
   for (int i = 1; i <= argc-1; i++) {
     argumentList=snocString(argumentList, argv[i]);
   }
@@ -2117,10 +2031,6 @@ int cMain ( int argc, char *argv[] ) {
               // setze die zu erledigende Aufgabe auf Testen der Datei
               operationMode = OPERATION_MODE_TEST;
               break;
-            case 'k': // Wenn das Argument 'k'
-              // behalte die ursprüngliche Datei
-              keepInputFiles = True;
-              break;
             case 's': // Wenn das Argument 's' ist
               // benutze wenig Speicherplatz
               smallMode = True;
@@ -2165,24 +2075,11 @@ int cMain ( int argc, char *argv[] ) {
               // setze die Blockgrößenfaktor auf 9
               blockSize100k    = 9;
               break;
-            case 'V': // Wenn das Argument 'V' oder ...
-            case 'L': // ...wenn das Argument 'L' ist
-              // zeige den Lizenztext an
-              printLicenseOnStandardOutputStream();
-              // beende die Anwendung mit dem Rückkehrcode fehlerfrei
-              exit ( 0 );
-              break;
-            case 'h':  // Wenn das Argument 'h'
-              // zeige die Information zur Nutzung des Programms an
-              printUsageInformationOnStandardErrorStream ( progName ); // MARK: Logikfehler, schreiben auf stderr aber RC=0
-              // beende die Anwendung mit dem Rückkehrcode fehlerfrei
-              exit ( 0 );
+            case 'k': // ignorieren, weil über Swift gesetzt
               break;
             default: // Wenn ein anderes, also unbekanntes, Argument angegeben ist
               // gebe eine Fehlermeldung mit Programmnamen und Argument auf dem Standard-Fehler-Datenstrom aus
               fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-              // zeige die Information zur Nutzung des Programms an
-              printUsageInformationOnStandardErrorStream ( progName );
               // beende die Anwendung mit dem Rückkehrcode Fehler Nr. 1
               exit ( 1 );
               break;
@@ -2220,53 +2117,29 @@ int cMain ( int argc, char *argv[] ) {
                 operationMode = OPERATION_MODE_TEST;
               }
               else {
-                if (ISFLAG(argument,"--keep"))              {
-                  keepInputFiles = True;
+                if (ISFLAG(argument,"--small"))             {
+                  smallMode = True;
                 }
                 else {
-                  if (ISFLAG(argument,"--small"))             {
-                    smallMode = True;
+                  if (ISFLAG(argument,"--quiet"))             {
+                    quiet = True;
                   }
                   else {
-                    if (ISFLAG(argument,"--quiet"))             {
-                      quiet = True;
+                    if (ISFLAG(argument,"--exponential"))       {
+                      workFactor = 1;
                     }
                     else {
-                      if (ISFLAG(argument,"--version"))           {
-                        printLicenseOnStandardOutputStream();
-                        exit ( 0 );
+                      if (ISFLAG(argument,"--fast"))              {
+                        blockSize100k = 1;
                       }
                       else {
-                        if (ISFLAG(argument,"--license"))           {
-                          printLicenseOnStandardOutputStream();
-                          exit ( 0 );
+                        if (ISFLAG(argument,"--best"))              {
+                          blockSize100k = 9;
                         }
                         else {
-                          if (ISFLAG(argument,"--exponential"))       {
-                            workFactor = 1;
-                          }
-                          else {
-                            if (ISFLAG(argument,"--fast"))              {
-                              blockSize100k = 1;
-                            }
-                            else {
-                              if (ISFLAG(argument,"--best"))              {
-                                blockSize100k = 9;
-                              }
-                              else {
-                                if (ISFLAG(argument,"--help"))              {
-                                  printUsageInformationOnStandardErrorStream ( progName );
-                                  exit ( 0 );
-                                }
-                                else {
-                                  if (strncmp ( argument->name, "--", 2) == 0) {
-                                    fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                                    printUsageInformationOnStandardErrorStream ( progName );
-                                    exit ( 1 );
-                                  }
-                                }
-                              }
-                            }
+                          if (strncmp ( argument->name, "--", 2) == 0) {
+                            fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
+                            exit ( 1 );
                           }
                         }
                       }

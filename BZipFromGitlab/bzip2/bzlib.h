@@ -191,10 +191,6 @@ typedef void BZFILE;
    If this code breaks, please contact both Yoshioka and me.
 --*/
 
-  extern const char * BZ2_bzlibVersion (
-      void
-   );
-
   extern BZFILE * BZ2_bzopen (
       const char *path,
       const char *mode

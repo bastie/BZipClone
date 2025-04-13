@@ -5,11 +5,12 @@
 //
 
 import Foundation
+import ArgumentParser
 
 @main
-struct BZip2 {
-
-  public static func main() {
+struct bzip2 : ParsableCommand {
+  
+  func run() throws {
     // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
     // 1. Prüfe die C-Typen (über Bridging Header)
     if 0 != isCTypeSizesFits2BZip() {
@@ -22,14 +23,13 @@ struct BZip2 {
         MemoryLayout<Int8>.size != 1 || MemoryLayout<UInt8>.size != 1 {
       printConfigErrorAndExitApplication()
     }
-
+    
     /*-- Set up signal handlers for mem access errors --*/
     registerSignalHandlers4MemErrors();
-
+    
     // Initialisiere die Variablen mit Standardwerten
     outputHandleJustInCase  = nil
     smallMode               = 0 // C-Bool = FALSE
-    keepInputFiles          = 0 // C-Bool = FALSE
     forceOverwrite          = 0 // C-Bool = FALSE
     quiet                   = 0 // C-Bool = FALSE
     blockSize100k           = 9
@@ -46,6 +46,125 @@ struct BZip2 {
     )
     
     cMain(CommandLine.argc, CommandLine.unsafeArgv)
+  }
+  
+  @Flag(name: [.customShort("k"), .customLong("keep")],
+        help: "keep (don't delete) input files")
+  var _keepInputFiles = false
+  
+  @Flag(name: [.customShort("f"), .customLong("force")],
+        help: "overwrite existing output files")
+  var _forceOverwrite = false
+  
+  @Flag(name: [.customShort("s"), .customLong("small")],
+        help: "use less memory (at most 2500k)")
+  var _smallMode = false
+  
+  @Flag(name: [.customShort("V"), .customLong("version")],
+        help: "display software version & license")
+  var _version = false
+  @Flag(name: [.customShort("L"), .customLong("license")],
+        help: "display software version & license")
+  var _license = false
+  
+  @Flag(name: [.customShort("q"), .customLong("quiet")],
+        help: "suppress noncritical error messages")
+  var _quiet = false
+  
+  @Flag(name: [.customShort("c"), .customLong("stdout")],
+        help: "output to standard out")
+  var _stdout = false
+  @Flag(name: [.customShort("t"), .customLong("test")],
+        help: "test compressed file integrity")
+  var _test = false
+  @Flag(name: [.customShort("z"), .customLong("compress")],
+        help: "force compression")
+  var _compress = false
+  @Flag(name: [.customShort("d"), .customLong("decompress")],
+        help: "force decompression")
+  var _decompress = false
+  
+  // alle restlichen Argumente
+  @Argument(help: "input files")
+  var fileArguments: [String] = []
+  
+  enum CompressionLevel: Int, EnumerableFlag {
+    case level9 = 9
+    case level8 = 8
+    case level7 = 7
+    case level6 = 6
+    case level5 = 5
+    case level4 = 4
+    case level3 = 3
+    case level2 = 2
+    case level1 = 1
+    
+    static func name(for value: Self) -> NameSpecification {
+      switch value {
+      case .level9: return [.customShort("9"), .customLong("best")]
+      case .level8: return [.customShort("8")]
+      case .level7: return [.customShort("7")]
+      case .level6: return [.customShort("6")]
+      case .level5: return [.customShort("5")]
+      case .level4: return [.customShort("4")]
+      case .level3: return [.customShort("3")]
+      case .level2: return [.customShort("2")]
+      case .level1: return [.customShort("1"), .customLong("fast")]
+        //default: return .shortAndLong
+      }
+    }
+  }
+  
+  @Flag(exclusivity: .exclusive,
+        help: ArgumentHelp(
+    """
+      set block size to 100k .. 900k
+      --fast alias for -1
+      --best alias for -9
+    """))
+  var _blockSize100k: CompressionLevel = .level9
+  
+  mutating func validate() throws {
+    if _version || _license {
+      printLicenseOnStandardOutputStream();
+      Foundation.exit ( 0 );
+    }
+    
+    if _keepInputFiles {
+      keepInputFiles = True
+    }
+  }
+  
+  
+  /** (KI generiert und angepasst)
+   *
+   * @brief Gibt die Lizenzinformationen auf der Standardausgabe aus.
+   *
+   * Diese Funktion gibt die Versionsnummer, das Copyright und die Lizenzbedingungen
+   * auf der Standardausgabe aus. Die Ausgabe informiert den Benutzer
+   * darüber, dass die Anwendung freie Software ist und unter den Bedingungen der im
+   * LICENSE-Datei definierten Lizenz vertrieben wird.
+   *
+   * @note Diese Funktion gibt keine Werte zurück.
+   */
+  func printLicenseOnStandardOutputStream () {
+    let version = "1.1.0"
+    print ("""
+      bzip2, a block-sorting file compressor.  
+      Version \(version).
+         
+         Copyright (C) 1996-2010 by Julian Seward.
+         
+         This program is free software; you can redistribute it and/or modify
+         it under the terms set out in the LICENSE file, which is included
+         in the bzip2-1.0.6 source distribution.
+         
+         This program is distributed in the hope that it will be useful,
+         but WITHOUT ANY WARRANTY; without even the implied warranty of
+         MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+         LICENSE file for more details.
+      """
+    )
   }
 }
 

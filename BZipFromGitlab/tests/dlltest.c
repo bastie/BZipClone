@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "bzlib.h"
+#include "BZipFromGitlab-Bridging-Header"
 #ifdef _WIN32
 #include <io.h>
 #endif

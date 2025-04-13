@@ -1624,26 +1624,6 @@ errhandler:
 }
 
 
-/*---------------------------------------------------*/
-/*--
-   Code contributed by Yoshioka Tsuneo (tsuneo@rr.iij4u.or.jp)
-   to support better zlib compatibility.
-   This code is not _officially_ part of libbzip2 (yet);
-   I haven't tested it, documented it, or considered the
-   threading-safeness of it.
-   If this code breaks, please contact both Yoshioka and me.
---*/
-/*---------------------------------------------------*/
-
-/*---------------------------------------------------*/
-/*--
-   return version like "0.9.5d, 4-Sept-1999".
---*/
-const char * BZ2_bzlibVersion (void) {
-   return "1.1.0";
-}
-
-/*---------------------------------------------------*/
 
 #   define SET_BINARY_MODE(file)
 static BZFILE * bzopen_or_bzdopen

@@ -13,7 +13,15 @@
 
 FILE    *outputHandleJustInCase;
 
-Bool    keepInputFiles, smallMode, deleteOutputOnInterrupt;
+/**
+ Flag, ob die Eingabedateien beahlten werden sollen. Per default `false`
+ */
+extern Bool    keepInputFiles;
+/**
+ Flag, ob wenig Speicher verbraucht werden soll. Erzwingt Blockgröße kleiner als 3
+ */
+Bool    smallMode;
+Bool    deleteOutputOnInterrupt;
 /**
  Flag, ob die Datei(en) überschrieben werden sollen.
  */

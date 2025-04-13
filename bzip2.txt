@@ -83,11 +83,6 @@ DESCRIPTION
        bzcat (or bzip2 -dc) decompresses all specified  files  to
        the standard output.
 
-       bzip2  will  read arguments from the environment variables
-       BZIP2 and BZIP, in  that  order,  and  will  process  them
-       before  any  arguments  read  from the command line.  This
-       gives a convenient way to supply default arguments.
-
        Compression is always performed, even  if  the  compressed
        file  is slightly larger than the original.  Files of less
        than about one hundred bytes tend to get larger, since the
