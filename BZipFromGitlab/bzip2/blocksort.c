@@ -547,8 +547,6 @@ static inline UChar mmed3 ( UChar a, UChar b, UChar c ) {
   return b;
 }
 
-#define mmin(a,b) ((a) < (b)) ? (a) : (b)
-
 #define mpush(lz,hz,dz) { stackLo[sp] = lz; \
                           stackHi[sp] = hz; \
                           stackD [sp] = dz; \
@@ -645,9 +643,9 @@ static void mainQSort3 ( UInt32* ptr, UChar* block, UInt16* quadrant, Int32 nblo
       continue;
     }
     
-    n = mmin(ltLo-lo, unLo-ltLo);
+    n = ((ltLo-lo) < (unLo-ltLo)) ? (ltLo-lo) : (unLo-ltLo); // setze n auf den kleineren Wert
     mvswap(lo, unLo-n, n);
-    m = mmin(hi-gtHi, gtHi-unHi);
+    m = ((hi-gtHi) < (gtHi-unHi)) ? (hi-gtHi) : (gtHi-unHi); // setze m auf den kleineren Wert
     mvswap(unLo, hi-m+1, m);
     
     n = lo + unLo - ltLo - 1;
@@ -683,7 +681,6 @@ static void mainQSort3 ( UInt32* ptr, UChar* block, UInt16* quadrant, Int32 nblo
 #undef mvswap
 #undef mpush
 #undef mpop
-#undef mmin
 #undef mnextsize
 #undef mnextswap
 #undef MAIN_QSORT_SMALL_THRESH
