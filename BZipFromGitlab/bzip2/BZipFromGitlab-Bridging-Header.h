@@ -20,7 +20,7 @@ extern Bool keepInputFiles;
 /**
  Flag, ob wenig Speicher verbraucht werden soll. Erzwingt Blockgröße kleiner als 3
  */
-Bool    smallMode;
+extern Bool smallMode;
 Bool    deleteOutputOnInterrupt;
 /**
  Flag, ob die Datei(en) überschrieben werden sollen.
@@ -34,7 +34,10 @@ Bool    testFailsExist;
  Flag, ob es Fehler beim Dekomprimieren der Datei(en) gab.
  */
 Bool    decompressFailsExist;
-Bool    quiet;
+/**
+  Flag, ob möglichst wenig Ausgaben erfolgen sollen
+ */
+extern Bool    quiet;
 Int32   numFileNames, numFilesProcessed;
 /**
  Flag, welches den Kompressionsfaktor angibt denn größere Blöcke bedeuten bessere Komprimierung

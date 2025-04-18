@@ -1341,7 +1341,7 @@ BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int small, void* unused, int nUn
   BZ_SETERR(BZ_OK);
   
   if (f == NULL ||
-      (small != 0 && small != 1) ||
+      (small != False && small != True) ||
       (unused == NULL && nUnused != 0) ||
       (unused != NULL && (nUnused < 0 || nUnused > BUFFER_SIZE))) {
     BZ_SETERR(BZ_PARAM_ERROR);

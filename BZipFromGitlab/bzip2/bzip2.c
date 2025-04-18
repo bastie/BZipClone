@@ -27,6 +27,8 @@ Bool    keepInputFiles = False;
 Int32   blockSize100k = -1;
 Int32   operationMode = -1;
 Bool    forceOverwrite = False;
+Bool    smallMode = False;
+Bool    quiet = False;
 
 /*--
   Some stuff for all platforms.
@@ -2018,18 +2020,12 @@ int cMain ( int argc, char *argv[] ) {
               operationMode = OPERATION_MODE_COMPRESS;
               break;
             case 'f': // ignorieren, weil über Swift gesetzt
+            case 'q': // ignorieren, weil über Swift gesetzt
+            case 's': // ignorieren, weil über Swift gesetzt
               break;
             case 't': // Wenn das Argument 't' ist
               // setze die zu erledigende Aufgabe auf Testen der Datei
               operationMode = OPERATION_MODE_TEST;
-              break;
-            case 's': // Wenn das Argument 's' ist
-              // benutze wenig Speicherplatz
-              smallMode = True;
-              break;
-            case 'q': // Wenn das Argument 'q'
-              // gebe möglichst wenig Informationen auf der Kommandozeile aus
-              quiet = True;
               break;
             case '1': // ignorieren, weil über Swift gesetzt
             case '2': // ignorieren, weil über Swift gesetzt
@@ -2078,18 +2074,13 @@ int cMain ( int argc, char *argv[] ) {
               operationMode = OPERATION_MODE_TEST;
             }
             else {
-              if (ISFLAG(argument,"--quiet"))             {
-                quiet = True;
+              if (ISFLAG(argument,"--exponential"))       {
+                workFactor = 1;
               }
               else {
-                if (ISFLAG(argument,"--exponential"))       {
-                  workFactor = 1;
-                }
-                else {
-                  if (strncmp ( argument->name, "--", 2) == 0) {
-                    fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                    exit ( 1 );
-                  }
+                if (strncmp ( argument->name, "--", 2) == 0) {
+                  fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
+                  exit ( 1 );
                 }
               }
             }

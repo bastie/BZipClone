@@ -81,8 +81,6 @@ struct bzip2 : ParsableCommand {
     
     // Initialisiere die Variablen mit Standardwerten
     outputHandleJustInCase  = nil
-    smallMode               = 0 // C-Bool = FALSE
-    quiet                   = 0 // C-Bool = FALSE
     testFailsExist          = 0 // C-Bool = FALSE
     decompressFailsExist    = 0 // C-Bool = FALSE
     numFileNames            = 0
@@ -98,9 +96,12 @@ struct bzip2 : ParsableCommand {
     )
     
     // Prüfe, ob der smallMode gesetzt ist und komprimiert werden soll und die Blockgröße > 2 ist
-    if _smallMode && operationMode == 1 /*OPERATION_MODE_COMPRESS*/ && blockSize100k > 2 {
+    if _smallMode
+        && operationMode == 1 /*nutze 1 statt OPERATION_MODE_COMPRESS solange bis der Operation Modus komplett auf Swift läuft - sonst müsste die const auch noch extern deklariert werden*/
+        && blockSize100k > 2 {
       // setze die Blockgröße auf 2 (da ja smallMode = TRUE)
-      blockSize100k = 2;
+      blockSize100k = 2
+      smallMode = True // da beim Dekomprimieren noch der smallMode direkt genutzt wird
     }
 
     cMain(CommandLine.argc, CommandLine.unsafeArgv)
@@ -117,11 +118,11 @@ struct bzip2 : ParsableCommand {
       keepInputFiles = True
     }
     blockSize100k = Int32(_blockSize100k.rawValue)
-    if _smallMode {
-      smallMode = True
-    }
     if _forceOverwrite {
       forceOverwrite = True
+    }
+    if _quiet {
+      quiet = True
     }
   }
   
