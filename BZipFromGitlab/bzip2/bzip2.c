@@ -26,6 +26,7 @@
 Bool    keepInputFiles = False;
 Int32   blockSize100k = -1;
 Int32   operationMode = -1;
+Bool    forceOverwrite = False;
 
 /*--
   Some stuff for all platforms.
@@ -2016,9 +2017,7 @@ int cMain ( int argc, char *argv[] ) {
               // setze die zu erledigende Aufgabe auf Komprimierung
               operationMode = OPERATION_MODE_COMPRESS;
               break;
-            case 'f': // Wenn das Argument 'f' ist
-              // überschreibe eine evtl. vorhandene Zieldatei
-              forceOverwrite = True;
+            case 'f': // ignorieren, weil über Swift gesetzt
               break;
             case 't': // Wenn das Argument 't' ist
               // setze die zu erledigende Aufgabe auf Testen der Datei
@@ -2075,26 +2074,21 @@ int cMain ( int argc, char *argv[] ) {
             operationMode = OPERATION_MODE_COMPRESS;
           }
           else {
-            if (ISFLAG(argument,"--force"))             {
-              forceOverwrite = True;
+            if (ISFLAG(argument,"--test"))              {
+              operationMode = OPERATION_MODE_TEST;
             }
             else {
-              if (ISFLAG(argument,"--test"))              {
-                operationMode = OPERATION_MODE_TEST;
+              if (ISFLAG(argument,"--quiet"))             {
+                quiet = True;
               }
               else {
-                if (ISFLAG(argument,"--quiet"))             {
-                  quiet = True;
+                if (ISFLAG(argument,"--exponential"))       {
+                  workFactor = 1;
                 }
                 else {
-                  if (ISFLAG(argument,"--exponential"))       {
-                    workFactor = 1;
-                  }
-                  else {
-                    if (strncmp ( argument->name, "--", 2) == 0) {
-                      fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
-                      exit ( 1 );
-                    }
+                  if (strncmp ( argument->name, "--", 2) == 0) {
+                    fprintf ( stderr, "%s: Bad flag `%s'\n", progName, argument->name );
+                    exit ( 1 );
                   }
                 }
               }

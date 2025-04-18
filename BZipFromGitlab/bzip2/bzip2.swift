@@ -9,51 +9,8 @@ import ArgumentParser
 
 @main
 struct bzip2 : ParsableCommand {
-  
-  func run() throws {
-    // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
-    // 1. Prüfe die C-Typen (über Bridging Header)
-    if 0 != isCTypeSizesFits2BZip() {
-      printConfigErrorAndExitApplication()
-    }
-    
-    // 2. Prüfe die Swift-Typen
-    if MemoryLayout<Int32>.size != 4 || MemoryLayout<UInt32>.size != 4 ||
-        MemoryLayout<Int16>.size != 2 || MemoryLayout<UInt16>.size != 2 ||
-        MemoryLayout<Int8>.size != 1 || MemoryLayout<UInt8>.size != 1 {
-      printConfigErrorAndExitApplication()
-    }
-    
-    /*-- Set up signal handlers for mem access errors --*/
-    registerSignalHandlers4MemErrors();
-    
-    // Initialisiere die Variablen mit Standardwerten
-    outputHandleJustInCase  = nil
-    smallMode               = 0 // C-Bool = FALSE
-    forceOverwrite          = 0 // C-Bool = FALSE
-    quiet                   = 0 // C-Bool = FALSE
-    testFailsExist          = 0 // C-Bool = FALSE
-    decompressFailsExist    = 0 // C-Bool = FALSE
-    numFileNames            = 0
-    numFilesProcessed       = 0
-    workFactor              = 30
-    deleteOutputOnInterrupt = 0 // C-Bool = FALSE
-    exitReturnCode          = 0
-    operationMode = 1/* OPERATION_MODE_COMPRESS;*/
-    
 
-    progName = letCHandleMemoryFromSwiftString(
-      CommandLine.arguments[0].split(separator: "/").last
-    )
-    
-    // Prüfe, ob der smallMode gesetzt ist und komprimiert werden soll und die Blockgröße > 2 ist
-    if _smallMode && operationMode == 1 /*OPERATION_MODE_COMPRESS*/ && blockSize100k > 2 {
-      // setze die Blockgröße auf 2 (da ja smallMode = TRUE)
-      blockSize100k = 2;
-    }
-
-    cMain(CommandLine.argc, CommandLine.unsafeArgv)
-  }
+// MARK: flags, options, arguments of program
   
   @Flag(name: [.customShort("k"), .customLong("keep")],
         help: "keep (don't delete) input files")
@@ -94,34 +51,7 @@ struct bzip2 : ParsableCommand {
   // alle restlichen Argumente
   @Argument(help: "input files")
   var fileArguments: [String] = []
-  
-  enum CompressionLevel: Int, EnumerableFlag {
-    case level9 = 9
-    case level8 = 8
-    case level7 = 7
-    case level6 = 6
-    case level5 = 5
-    case level4 = 4
-    case level3 = 3
-    case level2 = 2
-    case level1 = 1
     
-    static func name(for value: Self) -> NameSpecification {
-      switch value {
-      case .level9: return [.customShort("9"), .customLong("best")]
-      case .level8: return [.customShort("8")]
-      case .level7: return [.customShort("7")]
-      case .level6: return [.customShort("6")]
-      case .level5: return [.customShort("5")]
-      case .level4: return [.customShort("4")]
-      case .level3: return [.customShort("3")]
-      case .level2: return [.customShort("2")]
-      case .level1: return [.customShort("1"), .customLong("fast")]
-        //default: return .shortAndLong
-      }
-    }
-  }
-  
   @Flag(exclusivity: .exclusive,
         help: ArgumentHelp(
     """
@@ -131,10 +61,56 @@ struct bzip2 : ParsableCommand {
     """))
   var _blockSize100k: CompressionLevel = .level9
   
+  /// Startet nach Ausführung des Swift-Argument-Parser die weitere Anwendung
+  func run() throws {
+    // Stelle sicher, dass die Größe der Typen für den Algorithmus stimmen.
+    // 1. Prüfe die C-Typen (über Bridging Header)
+    if 0 != isCTypeSizesFits2BZip() {
+      printConfigErrorAndExitApplication()
+    }
+    
+    // 2. Prüfe die Swift-Typen
+    if MemoryLayout<Int32>.size != 4 || MemoryLayout<UInt32>.size != 4 ||
+        MemoryLayout<Int16>.size != 2 || MemoryLayout<UInt16>.size != 2 ||
+        MemoryLayout<Int8>.size != 1 || MemoryLayout<UInt8>.size != 1 {
+      printConfigErrorAndExitApplication()
+    }
+    
+    /*-- Set up signal handlers for mem access errors --*/
+    registerSignalHandlers4MemErrors();
+    
+    // Initialisiere die Variablen mit Standardwerten
+    outputHandleJustInCase  = nil
+    smallMode               = 0 // C-Bool = FALSE
+    quiet                   = 0 // C-Bool = FALSE
+    testFailsExist          = 0 // C-Bool = FALSE
+    decompressFailsExist    = 0 // C-Bool = FALSE
+    numFileNames            = 0
+    numFilesProcessed       = 0
+    workFactor              = 30
+    deleteOutputOnInterrupt = 0 // C-Bool = FALSE
+    exitReturnCode          = 0
+    operationMode = 1 /* OPERATION_MODE_COMPRESS */
+    
+
+    progName = letCHandleMemoryFromSwiftString(
+      CommandLine.arguments[0].split(separator: "/").last
+    )
+    
+    // Prüfe, ob der smallMode gesetzt ist und komprimiert werden soll und die Blockgröße > 2 ist
+    if _smallMode && operationMode == 1 /*OPERATION_MODE_COMPRESS*/ && blockSize100k > 2 {
+      // setze die Blockgröße auf 2 (da ja smallMode = TRUE)
+      blockSize100k = 2;
+    }
+
+    cMain(CommandLine.argc, CommandLine.unsafeArgv)
+  }
+  
+  /// Spezielle Auswertung der flags, options und arguments der Anwendung
   mutating func validate() throws {
     if _version || _license {
       printLicenseOnStandardOutputStream();
-      Foundation.exit ( 0 );
+      Foundation.exit (0);
     }
     
     if _keepInputFiles {
@@ -143,6 +119,9 @@ struct bzip2 : ParsableCommand {
     blockSize100k = Int32(_blockSize100k.rawValue)
     if _smallMode {
       smallMode = True
+    }
+    if _forceOverwrite {
+      forceOverwrite = True
     }
   }
   

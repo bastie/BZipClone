@@ -16,7 +16,7 @@ FILE    *outputHandleJustInCase;
 /**
  Flag, ob die Eingabedateien beahlten werden sollen. Per default `false`
  */
-extern Bool    keepInputFiles;
+extern Bool keepInputFiles;
 /**
  Flag, ob wenig Speicher verbraucht werden soll. Erzwingt Blockgröße kleiner als 3
  */
@@ -25,7 +25,7 @@ Bool    deleteOutputOnInterrupt;
 /**
  Flag, ob die Datei(en) überschrieben werden sollen.
  */
-Bool    forceOverwrite;
+extern Bool forceOverwrite;
 /**
  Flag, ob es Fehler beim Testen der Datei(en) gab.
  */
