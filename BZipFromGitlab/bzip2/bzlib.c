@@ -185,7 +185,7 @@ int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int workFactor ) {
   }
   
   s->blockNo           = 0;
-  s->state             = BZ_S_INPUT;
+  s->statusInputEqualsTrueVsOutputEqualsFalse             = True;
   s->modus              = BZ_MODUS_RUNNING;
   s->combinedCRC       = 0;
   s->blockSize100k     = blockSize100k;
@@ -213,7 +213,7 @@ static void add_pair_to_block ( EState* s ) {
   Int32 i;
   UChar ch = (UChar)(s->state_in_ch);
   for (i = 0; i < s->state_in_len; i++) {
-    BZ_UPDATE_CRC( s->blockCRC, ch );
+    BZ_UPDATE_CRC(&s->blockCRC, ch); // Funktionsaufruf (Pointer)
   }
   s->inUse[s->state_in_ch] = True;
   switch (s->state_in_len) {
@@ -267,7 +267,7 @@ static void flush_RL ( EState* s ) {
    if (zchh != zs->state_in_ch &&                 \
        zs->state_in_len == 1) {                   \
       UChar ch = (UChar)(zs->state_in_ch);        \
-      BZ_UPDATE_CRC( zs->blockCRC, ch );          \
+      BZ_UPDATE_CRC(&zs->blockCRC, ch);           \
       zs->inUse[zs->state_in_ch] = True;          \
       zs->block[zs->nblock] = (UChar)ch;          \
       zs->nblock += 1;                               \
@@ -376,6 +376,7 @@ static Bool copy_output_until_stop ( EState* s ) {
 
 
 /*---------------------------------------------------*/
+// Diese Funktion wird nur von "int BZ2_bzCompress ( bz_stream *strm, int action )" aufgerufen
 static Bool handle_compress ( bz_stream* strm ) {
   Bool progress_in  = False;
   Bool progress_out = False;
@@ -383,7 +384,7 @@ static Bool handle_compress ( bz_stream* strm ) {
   
   while (True) {
     
-    if (s->state == BZ_S_OUTPUT) {
+    if (!s->statusInputEqualsTrueVsOutputEqualsFalse) {
       progress_out |= copy_output_until_stop ( s );
       if (s->state_out_pos < s->numZ) {
         break;
@@ -394,7 +395,7 @@ static Bool handle_compress ( bz_stream* strm ) {
         break;
       }
       prepare_new_block ( s );
-      s->state = BZ_S_INPUT;
+      s->statusInputEqualsTrueVsOutputEqualsFalse = True;
       if (s->modus == BZ_MODUS_FLUSHING &&
           s->avail_in_expect == 0 &&
           isempty_RL(s)) {
@@ -402,17 +403,17 @@ static Bool handle_compress ( bz_stream* strm ) {
       }
     }
     
-    if (s->state == BZ_S_INPUT) {
+    if (s->statusInputEqualsTrueVsOutputEqualsFalse) {
       progress_in |= copy_input_until_stop ( s );
       if (s->modus != BZ_MODUS_RUNNING && s->avail_in_expect == 0) {
         flush_RL ( s );
         BZ2_compressBlock ( s, (Bool)(s->modus == BZ_MODUS_FINISHING) );
-        s->state = BZ_S_OUTPUT;
+        s->statusInputEqualsTrueVsOutputEqualsFalse = False;
       }
       else {
         if (s->nblock >= s->nblockMAX) {
           BZ2_compressBlock ( s, False );
-          s->state = BZ_S_OUTPUT;
+          s->statusInputEqualsTrueVsOutputEqualsFalse = False;
         }
         else {
           if (s->strm->avail_in == 0) {
@@ -462,7 +463,9 @@ int BZ2_bzCompress ( bz_stream *strm, int action ) {
       case BZ_MODUS_RUNNING:
         switch (action) {
           case BZ_RUN :
+            // komprimiere die Daten
             progress = handle_compress ( strm );
+            // verlasse die Funktion und berichte, ob der die Kompression erfolgreich war
             return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
           case BZ_FLUSH :
             statusOfStrm->avail_in_expect = strm->avail_in;
@@ -473,6 +476,7 @@ int BZ2_bzCompress ( bz_stream *strm, int action ) {
             statusOfStrm->modus = BZ_MODUS_FINISHING;
             break; // Zurück zum Anfang der do-while Schleife
           default :
+            // Verlasse die Funktion mit einem Fehler
             return BZ_PARAM_ERROR;
         }
         break; // Verlasse den inneren Switch
@@ -637,7 +641,7 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
           break;
         }
         *( (UChar*)(s->strm->next_out) ) = s->state_out_ch;
-        BZ_UPDATE_CRC ( s->calculatedBlockCRC, s->state_out_ch );
+        BZ_UPDATE_CRC(&s->calculatedBlockCRC, s->state_out_ch); // Funktionsaufruf (Pointer)
         s->state_out_len -= 1;
         s->strm->next_out += 1;
         s->strm->avail_out -= 1;
@@ -740,7 +744,7 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
             break;
           }
           *( (UChar*)(cs_next_out) ) = c_state_out_ch;
-          BZ_UPDATE_CRC ( c_calculatedBlockCRC, c_state_out_ch );
+          BZ_UPDATE_CRC(&c_calculatedBlockCRC, c_state_out_ch); // Funktionsaufruf (Pointer)
           c_state_out_len -= 1;
           cs_next_out += 1;
           cs_avail_out -= 1;
@@ -751,7 +755,7 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
             goto return_notr;
           }
           *( (UChar*)(cs_next_out) ) = c_state_out_ch;
-          BZ_UPDATE_CRC ( c_calculatedBlockCRC, c_state_out_ch );
+          BZ_UPDATE_CRC(&c_calculatedBlockCRC, c_state_out_ch); // Funktionsaufruf (Pointer)
           cs_next_out += 1;
           cs_avail_out -= 1;
         }
@@ -867,7 +871,7 @@ static Bool unRLE_obuf_to_output_SMALL ( DState* s ) {
           break;
         }
         *( (UChar*)(s->strm->next_out) ) = s->state_out_ch;
-        BZ_UPDATE_CRC ( s->calculatedBlockCRC, s->state_out_ch );
+        BZ_UPDATE_CRC(&s->calculatedBlockCRC, s->state_out_ch); // Funktionsaufruf (Pointer)
         s->state_out_len -= 1;
         s->strm->next_out += 1;
         s->strm->avail_out -= 1;
@@ -951,7 +955,7 @@ static Bool unRLE_obuf_to_output_SMALL ( DState* s ) {
           break;
         }
         *( (UChar*)(s->strm->next_out) ) = s->state_out_ch;
-        BZ_UPDATE_CRC ( s->calculatedBlockCRC, s->state_out_ch );
+        BZ_UPDATE_CRC(&s->calculatedBlockCRC, s->state_out_ch); // Funktionsaufruf (Pointer)
         s->state_out_len -= 1;
         s->strm->next_out += 1;
         s->strm->avail_out -= 1;
@@ -1792,6 +1796,16 @@ void BZ2_bzclose (BZFILE* b) {
 }
 
 
+// Neu: Funktion mit Pointer, um direkte Zuweisung zu ermöglichen
+inline void BZ_UPDATE_CRC(uint32_t *crcVar, uint8_t cha) {
+  *crcVar = (*crcVar << 8) ^
+  BZ2_crc32Table[(*crcVar >> 24) ^
+                 cha];
+}
+inline void BZ_FINALISE_CRC (unsigned int *crcVar) {
+  *crcVar = ~(*crcVar);
+}
+
 /*---------------------------------------------------*/
 /*--
    return last error code
@@ -1825,6 +1839,9 @@ const char * BZ2_bzerror (BZFILE *b, int *errnum) {
   *errnum = err;
   return bzerrorstrings[err*-1];
 }
+
+
+
 
 /*-------------------------------------------------------------*/
 /*--- end                                           bzlib.c ---*/

@@ -103,19 +103,11 @@ extern UInt32 BZ2_crc32Table[256];
 static const int BZ_INITIALISE_CRC = 0xffffffffL;                       
 
 
-static inline void BZ_FINALISE_CRC (unsigned int *crcVar) {
-  *crcVar = ~(*crcVar);
-}
+// nach bzlib verschoben
+extern void BZ_FINALISE_CRC (unsigned int *crcVar);
 
-
-#define BZ_UPDATE_CRC(crcVar,cha)              \
-{                                              \
-   crcVar = (crcVar << 8) ^                    \
-            BZ2_crc32Table[(crcVar >> 24) ^    \
-                           ((UChar)cha)];      \
-}
-
-
+// nach bzlib verschoben
+extern void BZ_UPDATE_CRC(uint32_t *crcVar, uint8_t cha); // Nur Deklaration!
 
 /*-- States and modes for compression. --*/
 
@@ -145,7 +137,7 @@ typedef struct {
   /* mode this stream is in, and whether inputting */
   /* or outputting data */
   BZ_MODUS modus;
-  Int32    state;
+  Bool    statusInputEqualsTrueVsOutputEqualsFalse; // C: 0==falsch
   
   /* remembers avail_in when flush/finish requested */
   UInt32   avail_in_expect;
