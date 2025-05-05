@@ -544,6 +544,7 @@ static void sendMoveToFrontValues ( EState* s ) {
 
 
 /*---------------------------------------------------*/
+// Diese Funktion wird nur durch handle_compress aufgerufen
 void BZ2_compressBlock ( EState* status, Bool is_last_block ) {
   
   if (status->nblock > 0) {

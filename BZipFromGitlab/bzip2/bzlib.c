@@ -120,7 +120,6 @@ static void init_RL ( EState* s ) {
    s->state_in_len = 0;
 }
 
-
 static Bool isempty_RL ( EState* s ) {
   if (s->state_in_ch < 256 && s->state_in_len > 0) {
     return False;
@@ -129,7 +128,6 @@ static Bool isempty_RL ( EState* s ) {
     return True;
   }
 }
-
 
 /*---------------------------------------------------*/
 int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int workFactor ) {
@@ -207,7 +205,6 @@ int BZ2_bzCompressInit ( bz_stream* strm, int blockSize100k, int workFactor ) {
   return BZ_OK;
 }
 
-
 /*---------------------------------------------------*/
 static void add_pair_to_block ( EState* s ) {
   Int32 i;
@@ -251,7 +248,6 @@ static void add_pair_to_block ( EState* s ) {
   }
 }
 
-
 /*---------------------------------------------------*/
 static void flush_RL ( EState* s ) {
   if (s->state_in_ch < 256) {
@@ -259,7 +255,6 @@ static void flush_RL ( EState* s ) {
   }
   init_RL ( s );
 }
-
 
 /*---------------------------------------------------*/
 #define ADD_CHAR_TO_BLOCK(zs,zchh0)               \
@@ -294,7 +289,6 @@ static Bool copy_input_until_stop ( EState* s ) {
   Bool progress_in = False;
   
   if (s->modus == BZ_MODUS_RUNNING) {
-    
     /*-- fast track the common case --*/
     while (True) {
       /*-- block full? --*/
@@ -314,10 +308,8 @@ static Bool copy_input_until_stop ( EState* s ) {
         s->strm->total_in_hi32 += 1;
       }
     }
-    
   }
   else {
-    
     /*-- general, uncommon case --*/
     while (True) {
       /*-- block full? --*/
@@ -345,7 +337,6 @@ static Bool copy_input_until_stop ( EState* s ) {
   }
   return progress_in;
 }
-
 
 /*---------------------------------------------------*/
 static Bool copy_output_until_stop ( EState* s ) {
@@ -380,42 +371,37 @@ static Bool copy_output_until_stop ( EState* s ) {
 
 /*---------------------------------------------------*/
 // Diese Funktion wird nur von "int BZ2_bzCompress ( bz_stream *strm, int action )" aufgerufen
-static Bool handle_compress ( bz_stream* strm ) {
+static inline Bool handle_compress ( bz_stream* strm ) {
   Bool progress_in  = False;
   Bool progress_out = False;
   EState* s = strm->state;
   
   while (True) {
-    
     if (!s->statusInputEqualsTrueVsOutputEqualsFalse) {
-      progress_out |= copy_output_until_stop ( s );
+      progress_out |= copy_output_until_stop (s);
       if (s->state_out_pos < s->numZ) {
         break;
       }
-      if (s->modus == BZ_MODUS_FINISHING &&
-          s->avail_in_expect == 0 &&
-          isempty_RL(s)) {
+      if (s->modus == BZ_MODUS_FINISHING && s->avail_in_expect == 0 && isempty_RL(s)) {
         break;
       }
       prepare_new_block ( s );
       s->statusInputEqualsTrueVsOutputEqualsFalse = True;
-      if (s->modus == BZ_MODUS_FLUSHING &&
-          s->avail_in_expect == 0 &&
-          isempty_RL(s)) {
+      if (s->modus == BZ_MODUS_FLUSHING && s->avail_in_expect == 0 && isempty_RL(s)) {
         break;
       }
     }
     
     if (s->statusInputEqualsTrueVsOutputEqualsFalse) {
-      progress_in |= copy_input_until_stop ( s );
+      progress_in |= copy_input_until_stop (s);
       if (s->modus != BZ_MODUS_RUNNING && s->avail_in_expect == 0) {
-        flush_RL ( s );
-        BZ2_compressBlock ( s, (Bool)(s->modus == BZ_MODUS_FINISHING) );
+        flush_RL (s);
+        BZ2_compressBlock (s, (Bool)(s->modus == BZ_MODUS_FINISHING));
         s->statusInputEqualsTrueVsOutputEqualsFalse = False;
       }
       else {
         if (s->nblock >= s->nblockMAX) {
-          BZ2_compressBlock ( s, False );
+          BZ2_compressBlock (s, False);
           s->statusInputEqualsTrueVsOutputEqualsFalse = False;
         }
         else {
@@ -624,7 +610,6 @@ int BZ2_bzDecompressInit ( bz_stream* strm, int small ) {
   return BZ_OK;
 }
 
-
 /*---------------------------------------------------*/
 /* Return  True if data corruption is discovered.
    Returns False if there is no problem.
@@ -689,7 +674,7 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
       if (k1 != s->k0) {
         s->k0 = k1;
         continue;
-      };
+      }
       
       s->state_out_len = 3;
       BZ_GET_FAST(k1);
@@ -772,14 +757,14 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
       if (c_nblock_used == s_save_nblockPP) {
         c_state_out_len = 0;
         goto return_notr;
-      };
+      }
       c_state_out_ch = c_k0;
       BZ_GET_FAST_C(k1);
       c_nblock_used += 1;
       if (k1 != c_k0) {
         c_k0 = k1;
         goto s_state_out_len_eq_one;
-      };
+      }
       if (c_nblock_used == s_save_nblockPP)
         goto s_state_out_len_eq_one;
       
@@ -792,7 +777,7 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
       if (k1 != c_k0) {
         c_k0 = k1;
         continue;
-      };
+      }
       
       c_state_out_len = 3;
       BZ_GET_FAST_C(k1);
@@ -833,8 +818,6 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
   }
   return False;
 }
-
-
 
 /*---------------------------------------------------*/
 inline Int32 BZ2_indexIntoF ( Int32 indx, Int32 *cftab ) {
@@ -944,7 +927,6 @@ static Bool unRLE_obuf_to_output_SMALL ( DState* s ) {
       s->k0 ^= BZ_RAND_MASK;
       s->nblock_used += 1;
     }
-    
   }
   else {
     
@@ -1021,7 +1003,6 @@ static Bool unRLE_obuf_to_output_SMALL ( DState* s ) {
   }
 }
 
-
 /*---------------------------------------------------*/
 int BZ2_bzDecompress ( bz_stream *strm ) {
   Bool    corrupt;
@@ -1081,7 +1062,6 @@ int BZ2_bzDecompress ( bz_stream *strm ) {
   return 666;  /*NOTREACHED*/
 }
 
-
 /*---------------------------------------------------*/
 int BZ2_bzDecompressEnd ( bz_stream *strm ) {
   DState* s;
@@ -1112,7 +1092,6 @@ int BZ2_bzDecompressEnd ( bz_stream *strm ) {
   return BZ_OK;
 }
 
-
 /*---------------------------------------------------*/
 /*--- File I/O stuff                              ---*/
 /*---------------------------------------------------*/
@@ -1133,7 +1112,6 @@ typedef struct {
   Bool      initialisedOk;
 } bzFile;
 
-
 /*---------------------------------------------*/
 static Bool myfeof ( FILE* f ) {
   Int32 c = fgetc ( f );
@@ -1143,7 +1121,6 @@ static Bool myfeof ( FILE* f ) {
   ungetc ( c, f );
   return False;
 }
-
 
 /*---------------------------------------------------*/
 BZFILE* BZ2_bzWriteOpen ( int* bzerror, FILE* f, int blockSize100k, int workFactor ) {
@@ -1191,8 +1168,6 @@ BZFILE* BZ2_bzWriteOpen ( int* bzerror, FILE* f, int blockSize100k, int workFact
   bzf->initialisedOk = True;
   return bzf;
 }
-
-
 
 /*---------------------------------------------------*/
 
@@ -1255,13 +1230,12 @@ void BZ2_bzWriteClose ( int* bzerror, BZFILE* b, int abandon, unsigned int* nbyt
    BZ2_bzWriteClose64 ( bzerror, b, abandon, nbytes_in, NULL, nbytes_out, NULL );
 }
 
-
 void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nbytes_in_lo32, unsigned int* nbytes_in_hi32, unsigned int* nbytes_out_lo32, unsigned int* nbytes_out_hi32 ) {
   Int32 n;
   unsigned long n2;
   Int32 ret;
   bzFile* bzf = (bzFile*)b;
-
+  
   if (bzf == NULL) {
     BZ_SETERR(BZ_OK);
     return;
@@ -1274,7 +1248,7 @@ void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nb
     BZ_SETERR(BZ_IO_ERROR);
     return;
   }
-
+  
   if (nbytes_in_lo32 != NULL) {
     *nbytes_in_lo32 = 0;
   }
@@ -1287,40 +1261,40 @@ void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nb
   if (nbytes_out_hi32 != NULL) {
     *nbytes_out_hi32 = 0;
   }
-
-   if ((!abandon) && bzf->lastErr == BZ_OK) {
-      while (True) {
-         bzf->strm.avail_out = BUFFER_SIZE;
-         bzf->strm.next_out = bzf->buf;
-         ret = BZ2_bzCompress ( &(bzf->strm), BZ_FINISH );
-        if (ret != BZ_FINISH_OK && ret != BZ_STREAM_END) {
-          BZ_SETERR(ret);
+  
+  if ((!abandon) && bzf->lastErr == BZ_OK) {
+    while (True) {
+      bzf->strm.avail_out = BUFFER_SIZE;
+      bzf->strm.next_out = bzf->buf;
+      ret = BZ2_bzCompress ( &(bzf->strm), BZ_FINISH );
+      if (ret != BZ_FINISH_OK && ret != BZ_STREAM_END) {
+        BZ_SETERR(ret);
+        return;
+      }
+      
+      if (bzf->strm.avail_out < BUFFER_SIZE) {
+        n = BUFFER_SIZE - bzf->strm.avail_out;
+        n2 = fwrite ( (void*)(bzf->buf), sizeof(UChar), n, bzf->handle );
+        if (n != n2 || ferror(bzf->handle)) {
+          BZ_SETERR(BZ_IO_ERROR);
           return;
         }
-
-         if (bzf->strm.avail_out < BUFFER_SIZE) {
-            n = BUFFER_SIZE - bzf->strm.avail_out;
-            n2 = fwrite ( (void*)(bzf->buf), sizeof(UChar), n, bzf->handle );
-           if (n != n2 || ferror(bzf->handle)) {
-             BZ_SETERR(BZ_IO_ERROR);
-             return;
-           };
-         }
-
-        if (ret == BZ_STREAM_END) {
-          break;
-        }
       }
-   }
-
-   if ( !abandon && !ferror ( bzf->handle ) ) {
-      fflush ( bzf->handle );
-     if (ferror(bzf->handle)) {
-       BZ_SETERR(BZ_IO_ERROR);
-       return;
-     };
-   }
-
+      
+      if (ret == BZ_STREAM_END) {
+        break;
+      }
+    }
+  }
+  
+  if ( !abandon && !ferror ( bzf->handle ) ) {
+    fflush ( bzf->handle );
+    if (ferror(bzf->handle)) {
+      BZ_SETERR(BZ_IO_ERROR);
+      return;
+    }
+  }
+  
   if (nbytes_in_lo32 != NULL) {
     *nbytes_in_lo32 = bzf->strm.total_in_lo32;
   }
@@ -1333,12 +1307,11 @@ void BZ2_bzWriteClose64 ( int* bzerror, BZFILE* b, int abandon, unsigned int* nb
   if (nbytes_out_hi32 != NULL) {
     *nbytes_out_hi32 = bzf->strm.total_out_hi32;
   }
-
-   BZ_SETERR(BZ_OK);
-   BZ2_bzCompressEnd ( &(bzf->strm) );
-   free ( bzf );
+  
+  BZ_SETERR(BZ_OK);
+  BZ2_bzCompressEnd ( &(bzf->strm) );
+  free ( bzf );
 }
-
 
 /*---------------------------------------------------*/
 BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int small, void* unused, int nUnused ) {
@@ -1397,7 +1370,6 @@ BZFILE* BZ2_bzReadOpen ( int* bzerror, FILE* f, int small, void* unused, int nUn
   return bzf;
 }
 
-
 /*---------------------------------------------------*/
 void BZ2_bzReadClose ( int *bzerror, BZFILE *b ) {
    bzFile* bzf = (bzFile*)b;
@@ -1418,7 +1390,6 @@ void BZ2_bzReadClose ( int *bzerror, BZFILE *b ) {
   }
    free ( bzf );
 }
-
 
 /*---------------------------------------------------*/
 int BZ2_bzRead ( int* bzerror, BZFILE* b, void* buf, int len ) {
@@ -1490,7 +1461,6 @@ int BZ2_bzRead ( int* bzerror, BZFILE* b, void* buf, int len ) {
   return 0; /*not reached*/
 }
 
-
 /*---------------------------------------------------*/
 void BZ2_bzReadGetUnused ( int* bzerror, BZFILE* b, void** unused, int* nUnused ) {
   bzFile* bzf = (bzFile*)b;
@@ -1557,7 +1527,6 @@ int BZ2_bzBuffToBuffCompress (char* dest, unsigned int* destLen, char* source, u
   return BZ_OK;
 }
 
-
 /*---------------------------------------------------*/
 int BZ2_bzBuffToBuffDecompress (char* dest, unsigned int* destLen, char* source, unsigned int sourceLen, int small) {
   bz_stream strm;
@@ -1609,14 +1578,13 @@ static BZFILE * bzopen_or_bzdopen (const char *path,   /* no use when bzdopen */
                                    int open_mode) {     /* bzopen: 0, bzdopen:1 */
   int    bzerr;
   char   unused[BUFFER_SIZE];
-  int    blockSize100k = 9;
-  int    writing       = 0;
-  char   mode2[10]     = "";
-  FILE   *fp           = NULL;
-  BZFILE *bzip2FilePointer         = NULL;
-  int    workFactor    = 30;
-  int    smallMode     = 0;
-  int    nUnused       = 0;
+  int    blockSize100k            = 9;
+  Bool   isWriting                = False;
+  char   mode2[10]                = "";
+  FILE   *fp                      = NULL;
+  BZFILE *bzip2FilePointer        = NULL;
+  const int    workFactor         = 30;
+  Bool   isSmallMode              = False;
   
   if (mode == NULL) {
     return NULL;
@@ -1624,13 +1592,13 @@ static BZFILE * bzopen_or_bzdopen (const char *path,   /* no use when bzdopen */
   while (*mode) {
     switch (*mode) {
       case 'r':
-        writing = 0;
+        isWriting = False;
         break;
       case 'w':
-        writing = 1;
+        isWriting = True;
         break;
       case 's':
-        smallMode = 1;
+        isSmallMode = False;
         break;
       default:
         if (isdigit((int)(*mode))) {
@@ -1640,14 +1608,14 @@ static BZFILE * bzopen_or_bzdopen (const char *path,   /* no use when bzdopen */
     mode += 1;
   }
   
-  strcat(mode2, writing ? "wb" : "rb" );
+  strcat(mode2, isWriting ? "wb" : "rb" );
   
   /* open fds with O_CLOEXEC _only_ when we are the initiator
    * aka. bzopen() but not bzdopen() */
   if (open_mode == 0) {
     strcat (mode2, "e");
     if (path==NULL || strcmp(path,"")==0) {
-      fp = (writing ? stdout : stdin);
+      fp = (isWriting ? stdout : stdin);
       SET_BINARY_MODE(fp);
     }
     else {
@@ -1661,7 +1629,7 @@ static BZFILE * bzopen_or_bzdopen (const char *path,   /* no use when bzdopen */
     return NULL;
   }
   
-  if (writing) {
+  if (isWriting) {
     /* Guard against total chaos and anarchy -- JRS */
     if (blockSize100k < 1) {
       blockSize100k = 1;
@@ -1672,7 +1640,7 @@ static BZFILE * bzopen_or_bzdopen (const char *path,   /* no use when bzdopen */
     bzip2FilePointer = BZ2_bzWriteOpen (&bzerr, fp, blockSize100k, workFactor);
   }
   else {
-    bzip2FilePointer = BZ2_bzReadOpen (&bzerr, fp, smallMode, unused, nUnused);
+    bzip2FilePointer = BZ2_bzReadOpen (&bzerr, fp, isSmallMode, unused, 0);
   }
   if (bzip2FilePointer == NULL) {
     if (fp != stdin && fp != stdout) {
@@ -1682,7 +1650,6 @@ static BZFILE * bzopen_or_bzdopen (const char *path,   /* no use when bzdopen */
   }
   return bzip2FilePointer;
 }
-
 
 /*---------------------------------------------------*/
 /*--
@@ -1694,12 +1661,10 @@ BZFILE * BZ2_bzopen ( const char *path, const char *mode ) {
   return bzopen_or_bzdopen(path,-1,mode,/*bzopen*/0);
 }
 
-
 /*---------------------------------------------------*/
 BZFILE * BZ2_bzdopen ( int fd, const char *mode ) {
    return bzopen_or_bzdopen(NULL,fd,mode,/*bzdopen*/1);
 }
-
 
 /*---------------------------------------------------*/
 int BZ2_bzread (BZFILE* b, void* buf, int len ) {
@@ -1717,12 +1682,11 @@ int BZ2_bzread (BZFILE* b, void* buf, int len ) {
   }
 }
 
-
 /*---------------------------------------------------*/
 int BZ2_bzwrite (BZFILE* b, void* buf, int len ) {
-   int bzerr;
-
-   BZ2_bzWrite(&bzerr,b,buf,len);
+  int bzerr;
+  
+  BZ2_bzWrite(&bzerr,b,buf,len);
   switch (bzerr) {
     case  BZ_OK:
       return len;
@@ -1731,13 +1695,11 @@ int BZ2_bzwrite (BZFILE* b, void* buf, int len ) {
   }
 }
 
-
 /*---------------------------------------------------*/
 int BZ2_bzflush (BZFILE *b) {
    /* do nothing now... */
    return 0;
 }
-
 
 /*---------------------------------------------------*/
 void BZ2_bzclose (BZFILE* b) {
@@ -1803,9 +1765,6 @@ const char * BZ2_bzerror (BZFILE *b, int *errnum) {
   *errnum = err;
   return bzerrorstrings[err*-1];
 }
-
-
-
 
 /*-------------------------------------------------------------*/
 /*--- end                                           bzlib.c ---*/
