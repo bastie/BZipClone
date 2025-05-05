@@ -254,8 +254,10 @@ static void add_pair_to_block ( EState* s ) {
 
 /*---------------------------------------------------*/
 static void flush_RL ( EState* s ) {
-   if (s->state_in_ch < 256) add_pair_to_block ( s );
-   init_RL ( s );
+  if (s->state_in_ch < 256) {
+    add_pair_to_block ( s );
+  }
+  init_RL ( s );
 }
 
 
@@ -289,58 +291,59 @@ static void flush_RL ( EState* s ) {
 
 /*---------------------------------------------------*/
 static Bool copy_input_until_stop ( EState* s ) {
-   Bool progress_in = False;
-
-   if (s->modus == BZ_MODUS_RUNNING) {
-
-      /*-- fast track the common case --*/
-      while (True) {
-         /*-- block full? --*/
-        if (s->nblock >= s->nblockMAX) {
-          break;
-        }
-         /*-- no input? --*/
-        if (s->strm->avail_in == 0) {
-          break;
-        }
-         progress_in = True;
-         ADD_CHAR_TO_BLOCK ( s, (UInt32)(*((UChar*)(s->strm->next_in))) );
-         s->strm->next_in += 1;
-         s->strm->avail_in -= 1;
-         s->strm->total_in_lo32 += 1;
-        if (s->strm->total_in_lo32 == 0) {
-          s->strm->total_in_hi32 += 1;
-        }
+  Bool progress_in = False;
+  
+  if (s->modus == BZ_MODUS_RUNNING) {
+    
+    /*-- fast track the common case --*/
+    while (True) {
+      /*-- block full? --*/
+      if (s->nblock >= s->nblockMAX) {
+        break;
       }
-
-   } else {
-
-      /*-- general, uncommon case --*/
-      while (True) {
-         /*-- block full? --*/
-        if (s->nblock >= s->nblockMAX) {
-          break;
-        }
-         /*-- no input? --*/
-        if (s->strm->avail_in == 0) {
-          break;
-        }
-         /*-- flush/finish end? --*/
-        if (s->avail_in_expect == 0) {
-          break;
-        }
-         progress_in = True;
-         ADD_CHAR_TO_BLOCK ( s, (UInt32)(*((UChar*)(s->strm->next_in))) );
-         s->strm->next_in += 1;
-         s->strm->avail_in -= 1;
-         s->strm->total_in_lo32 += 1;
-        if (s->strm->total_in_lo32 == 0) {
-          s->strm->total_in_hi32 += 1;
-        }
-         s->avail_in_expect -= 1;
+      /*-- no input? --*/
+      if (s->strm->avail_in == 0) {
+        break;
       }
-   }
-   return progress_in;
+      progress_in = True;
+      ADD_CHAR_TO_BLOCK ( s, (UInt32)(*((UChar*)(s->strm->next_in))) );
+      s->strm->next_in += 1;
+      s->strm->avail_in -= 1;
+      s->strm->total_in_lo32 += 1;
+      if (s->strm->total_in_lo32 == 0) {
+        s->strm->total_in_hi32 += 1;
+      }
+    }
+    
+  }
+  else {
+    
+    /*-- general, uncommon case --*/
+    while (True) {
+      /*-- block full? --*/
+      if (s->nblock >= s->nblockMAX) {
+        break;
+      }
+      /*-- no input? --*/
+      if (s->strm->avail_in == 0) {
+        break;
+      }
+      /*-- flush/finish end? --*/
+      if (s->avail_in_expect == 0) {
+        break;
+      }
+      progress_in = True;
+      ADD_CHAR_TO_BLOCK ( s, (UInt32)(*((UChar*)(s->strm->next_in))) );
+      s->strm->next_in += 1;
+      s->strm->avail_in -= 1;
+      s->strm->total_in_lo32 += 1;
+      if (s->strm->total_in_lo32 == 0) {
+        s->strm->total_in_hi32 += 1;
+      }
+      s->avail_in_expect -= 1;
+    }
+  }
+  return progress_in;
 }
 
 
@@ -641,7 +644,7 @@ static Bool unRLE_obuf_to_output_FAST ( DState* s ) {
           break;
         }
         *( (UChar*)(s->strm->next_out) ) = s->state_out_ch;
-        BZ_UPDATE_CRC(&s->calculatedBlockCRC, s->state_out_ch); // Funktionsaufruf (Pointer)
+        BZ_UPDATE_CRC(&s->calculatedBlockCRC, s->state_out_ch);
         s->state_out_len -= 1;
         s->strm->next_out += 1;
         s->strm->avail_out -= 1;
@@ -1514,20 +1517,11 @@ void BZ2_bzReadGetUnused ( int* bzerror, BZFILE* b, void** unused, int* nUnused 
 /*---------------------------------------------------*/
 
 /*---------------------------------------------------*/
-int BZ2_bzBuffToBuffCompress
-                         ( char*         dest,
-                           unsigned int* destLen,
-                           char*         source,
-                           unsigned int  sourceLen,
-                           int           blockSize100k,
-                          int           workFactor ) {
+int BZ2_bzBuffToBuffCompress (char* dest, unsigned int* destLen, char* source, unsigned int sourceLen, int  blockSize100k, int workFactor) {
   bz_stream strm;
   int ret;
   
-  if (dest == NULL || destLen == NULL ||
-      source == NULL ||
-      blockSize100k < 1 || blockSize100k > 9 ||
-      workFactor < 0 || workFactor > 250) {
+  if (dest == NULL || destLen == NULL || source == NULL || blockSize100k < 1 || blockSize100k > 9 || workFactor < 0 || workFactor > 250) {
     return BZ_PARAM_ERROR;
   }
   
@@ -1549,40 +1543,27 @@ int BZ2_bzBuffToBuffCompress
   
   ret = BZ2_bzCompress ( &strm, BZ_FINISH );
   if (ret == BZ_FINISH_OK) {
-    goto output_overflow;
+    BZ2_bzCompressEnd ( &strm );
+    return BZ_OUTBUFF_FULL;
   }
   if (ret != BZ_STREAM_END) {
-    goto errhandler;
+    BZ2_bzCompressEnd ( &strm );
+    return ret;
   }
   
   /* normal termination */
   *destLen -= strm.avail_out;
   BZ2_bzCompressEnd ( &strm );
   return BZ_OK;
-  
-output_overflow:
-  BZ2_bzCompressEnd ( &strm );
-  return BZ_OUTBUFF_FULL;
-  
-errhandler:
-  BZ2_bzCompressEnd ( &strm );
-  return ret;
 }
 
 
 /*---------------------------------------------------*/
-int BZ2_bzBuffToBuffDecompress
-                           ( char*         dest,
-                             unsigned int* destLen,
-                             char*         source,
-                             unsigned int  sourceLen,
-                             int           small) {
+int BZ2_bzBuffToBuffDecompress (char* dest, unsigned int* destLen, char* source, unsigned int sourceLen, int small) {
   bz_stream strm;
   int ret;
   
-  if (dest == NULL || destLen == NULL ||
-      source == NULL ||
-      (small != 0 && small != 1) ) {
+  if (dest == NULL || destLen == NULL || source == NULL || (small != 0 && small != 1) ) {
     return BZ_PARAM_ERROR;
   }
   
@@ -1601,41 +1582,31 @@ int BZ2_bzBuffToBuffDecompress
   
   ret = BZ2_bzDecompress ( &strm );
   if (ret == BZ_OK) {
-    goto output_overflow_or_eof;
+    if (strm.avail_out > 0) {
+      BZ2_bzDecompressEnd ( &strm );
+      return BZ_UNEXPECTED_EOF;
+    }
+    else {
+      BZ2_bzDecompressEnd ( &strm );
+      return BZ_OUTBUFF_FULL;
+    };
   }
   if (ret != BZ_STREAM_END) {
-    goto errhandler;
+    BZ2_bzDecompressEnd ( &strm );
+    return ret;
   }
   
   /* normal termination */
   *destLen -= strm.avail_out;
   BZ2_bzDecompressEnd ( &strm );
   return BZ_OK;
-  
-output_overflow_or_eof:
-  if (strm.avail_out > 0) {
-    BZ2_bzDecompressEnd ( &strm );
-    return BZ_UNEXPECTED_EOF;
-  }
-  else {
-    BZ2_bzDecompressEnd ( &strm );
-    return BZ_OUTBUFF_FULL;
-  };
-  
-errhandler:
-  BZ2_bzDecompressEnd ( &strm );
-  return ret;
 }
 
-
-
 #   define SET_BINARY_MODE(file)
-static BZFILE * bzopen_or_bzdopen
-               ( const char *path,   /* no use when bzdopen */
-                 int fd,             /* no use when bzdopen */
-                 const char *mode,
-                 int open_mode)      /* bzopen: 0, bzdopen:1 */
-{
+static BZFILE * bzopen_or_bzdopen (const char *path,   /* no use when bzdopen */
+                                   int fd,             /* no use when bzdopen */
+                                   const char *mode,
+                                   int open_mode) {     /* bzopen: 0, bzdopen:1 */
   int    bzerr;
   char   unused[BUFFER_SIZE];
   int    blockSize100k = 9;
@@ -1795,14 +1766,10 @@ void BZ2_bzclose (BZFILE* b) {
   }
 }
 
-
-// Neu: Funktion mit Pointer, um direkte Zuweisung zu ermöglichen
 inline void BZ_UPDATE_CRC(uint32_t *crcVar, uint8_t cha) {
-  *crcVar = (*crcVar << 8) ^
-  BZ2_crc32Table[(*crcVar >> 24) ^
-                 cha];
+  *crcVar = (*crcVar << 8) ^ BZ2_crc32Table[(*crcVar >> 24) ^ cha];
 }
-inline void BZ_FINALISE_CRC (unsigned int *crcVar) {
+inline void BZ_FINALISE_CRC(uint32_t *crcVar) {
   *crcVar = ~(*crcVar);
 }
 

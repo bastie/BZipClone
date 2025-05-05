@@ -100,8 +100,7 @@ extern Int32 BZ2_rNums[512];
 
 extern UInt32 BZ2_crc32Table[256];
 
-static const int BZ_INITIALISE_CRC = 0xffffffffL;                       
-
+static const int BZ_INITIALISE_CRC = 0xffffffffL;
 
 // nach bzlib verschoben
 extern void BZ_FINALISE_CRC (unsigned int *crcVar);
