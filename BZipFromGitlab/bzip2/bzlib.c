@@ -1687,13 +1687,9 @@ static BZFILE * bzopen_or_bzdopen
   
   strcat(mode2, writing ? "wb" : "rb" );
   
-  /* open fds with O_CLOEXEC _only_ when we are the initiator
-   * aka. bzopen() but not bzdopen() */
   if(open_mode == 0) {
-    strcat (mode2, writing ? "e" : "e" );
-  }
-  
-  if (open_mode==0) {
+    strcat (mode2, "e");
+    
     if (path==NULL || strcmp(path,"")==0) {
       fp = (writing ? stdout : stdin);
       SET_BINARY_MODE(fp);
